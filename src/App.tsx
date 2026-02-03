@@ -1,37 +1,41 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+
+// Генерируем хаотичные позиции частиц один раз
+const generateParticles = (count: number) => {
+  return Array.from({ length: count }, () => ({
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    size: 2 + Math.random() * 4,
+    depth: 0.3 + Math.random() * 0.7,
+  }));
+};
+
+const staticParticles = generateParticles(45);
 
 export default function App() {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [scrollY, setScrollY] = useState(0);
+  const [mousePosition, setMousePosition] = useState({ x: 0.5, y: 0.5 });
+  const [isLoaded, setIsLoaded] = useState(false);
+  
+  // Используем статичные частицы чтобы они не менялись при ре-рендере
+  const particlesData = useMemo(() => staticParticles, []);
+  
+  // Анимация разлёта при загрузке
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoaded(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
+      setMousePosition({ 
+        x: e.clientX / window.innerWidth, 
+        y: e.clientY / window.innerHeight 
+      });
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('scroll', handleScroll);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('scroll', handleScroll);
-    };
+    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
-
-  // Calculate dynamic styles based on mouse position and scroll
-  const titleStyle = {
-    color: `hsl(${(mousePosition.x / window.innerWidth) * 360}, 70%, 50%)`,
-    transform: `
-      scale(${1 + (mousePosition.y / window.innerHeight) * 0.3})
-      rotate(${(mousePosition.x / window.innerWidth - 0.5) * 10}deg)
-      translateY(${scrollY * 0.5}px)
-    `,
-    textShadow: `${mousePosition.x / 100}px ${mousePosition.y / 100}px 20px rgba(0,0,0,0.3)`,
-  };
 
   const gameIcons = [
     { name: "Action RPG", icon: "⚔️", color: "bg-red-500" },
@@ -57,26 +61,54 @@ export default function App() {
       {/* Minimalist Header */}
       <header className="sticky top-0 z-50 bg-black/20 backdrop-blur-md border-b border-white/10">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="text-xl font-bold tracking-wide">FS</div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="w-10 h-10 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm flex items-center justify-center text-sm font-bold tracking-wide hover:border-white/40 hover:bg-white/10 transition-all duration-300 cursor-pointer"
+          >
+            <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">FS</span>
+          </button>
           <nav className="hidden md:flex space-x-8">
             <button className="hover:text-cyan-400 transition-colors duration-300">Games</button>
             <button className="hover:text-cyan-400 transition-colors duration-300">About</button>
             <button className="hover:text-cyan-400 transition-colors duration-300">Contact</button>
           </nav>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-cyan-400 to-purple-500"></div>
+          <button 
+            className="h-10 px-4 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm flex items-center gap-3 hover:border-white/40 hover:bg-white/10 transition-all duration-300 cursor-pointer"
+          >
+            <svg 
+              className="w-5 h-5" 
+              fill="none" 
+              stroke="url(#profileGradient)" 
+              strokeWidth="2" 
+              viewBox="0 0 24 24"
+            >
+              <defs>
+                <linearGradient id="profileGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#22d3ee" />
+                  <stop offset="100%" stopColor="#a855f7" />
+                </linearGradient>
+              </defs>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+            </svg>
+            <span className="text-sm font-medium">
+              Очки: <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent font-bold">1000</span>
+            </span>
+          </button>
         </div>
       </header>
 
       {/* Interactive Title Section */}
       <section className="relative min-h-screen flex items-center justify-center px-6 py-20">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-900/20 via-transparent to-cyan-900/20"></div>
-        <div className="relative z-10 text-center">
+        <div className="relative z-10 text-center" style={{ perspective: '1000px' }}>
           <h1 
-            className="text-4xl md:text-6xl lg:text-8xl font-black tracking-tight leading-tight transition-all duration-300 ease-out cursor-default select-none"
-            style={titleStyle}
+            className="text-4xl md:text-6xl lg:text-8xl font-black tracking-tight leading-tight cursor-default select-none text-white transition-transform duration-1000 ease-out"
+            style={{
+              transform: `rotateY(${(mousePosition.x - 0.5) * 10}deg) rotateX(${(mousePosition.y - 0.5) * -10}deg)`,
+            }}
           >
             Добро пожаловать в<br />
-            <span className="bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-shimmer">
               FanatickStudio
             </span>
             <br />
@@ -87,20 +119,34 @@ export default function App() {
           </p>
         </div>
         
-        {/* Floating particles */}
+        {/* Floating particles that react to cursor */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {[...Array(20)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-2 h-2 bg-white/20 rounded-full animate-pulse"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 3}s`,
-                animationDuration: `${2 + Math.random() * 3}s`,
-              }}
-            ></div>
-          ))}
+          {particlesData.map((particle, i) => {
+            // Медленное смещение от курсора (эффект параллакса)
+            const offsetX = (mousePosition.x - 0.5) * 50 * particle.depth;
+            const offsetY = (mousePosition.y - 0.5) * 30 * particle.depth;
+            
+            // Начальная позиция - центр экрана, конечная - случайная
+            const startX = 50;
+            const startY = 50;
+            const finalX = isLoaded ? particle.x : startX;
+            const finalY = isLoaded ? particle.y : startY;
+            
+            return (
+              <div
+                key={i}
+                className="absolute bg-white rounded-full transition-all duration-[2000ms] ease-out"
+                style={{
+                  left: `${finalX}%`,
+                  top: `${finalY}%`,
+                  width: `${particle.size}px`,
+                  height: `${particle.size}px`,
+                  opacity: isLoaded ? 0.1 + particle.depth * 0.25 : 0,
+                  transform: `translate(${offsetX}px, ${offsetY}px) scale(${isLoaded ? 1 : 0})`,
+                }}
+              ></div>
+            );
+          })}
         </div>
       </section>
 
@@ -148,7 +194,7 @@ export default function App() {
       <footer className="relative py-12 px-6 border-t border-white/10">
         <div className="container mx-auto text-center">
           <p className="text-gray-400">
-            © 2024 FanatickStudio. Все права защищены.
+            © 2026 FanatickStudio. Все права защищены.
           </p>
         </div>
       </footer>

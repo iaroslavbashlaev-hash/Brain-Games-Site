@@ -39,6 +39,46 @@ body {
   50% { transform: translateY(-10px); }
 }
 
+/* Shimmer gradient animation */
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-shimmer {
+  background-size: 200% 200%;
+  animation: shimmer 8s ease-in-out infinite;
+}
+
+/* Falling particles animation */
+@keyframes fall {
+  0% {
+    transform: translateY(-20px) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.3;
+  }
+  90% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(100vh) translateX(var(--drift, 0px));
+    opacity: 0;
+  }
+}
+
+.animate-fall {
+  animation: fall var(--fall-duration, 20s) linear infinite;
+}
+
 @keyframes glow {
   0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
   50% { box-shadow: 0 0 40px rgba(59, 130, 246, 0.6); }

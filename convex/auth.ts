@@ -3,9 +3,20 @@ import { Password } from "@convex-dev/auth/providers/Password";
 import { Anonymous } from "@convex-dev/auth/providers/Anonymous";
 import { query } from "./_generated/server";
 import { v } from "convex/values";
+import { DataModel } from "./_generated/dataModel";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
-  providers: [Password, Anonymous],
+  providers: [
+    Password({
+      profile(params) {
+        return {
+          email: params.email as string,
+          name: params.name as string | undefined,
+        };
+      },
+    }),
+    Anonymous,
+  ],
 });
 
 export const loggedInUser = query({

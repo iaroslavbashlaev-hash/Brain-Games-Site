@@ -194,8 +194,8 @@ export function NumismatGame({ onBack }: { onBack: () => void }) {
               </div>
               <div className="text-lg font-semibold">
                 Время:{" "}
-                <span className="text-white font-bold">
-                  {timerStarted ? `${timeLeft}с` : "старт после «Запомнил»"}
+                <span className="text-white font-bold inline-block min-w-[3.5rem] text-right">
+                  {timerStarted ? `${timeLeft}с` : ""}
                 </span>
               </div>
               <div className="text-lg font-semibold">

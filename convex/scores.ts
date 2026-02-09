@@ -173,7 +173,7 @@ export const addPoints = mutation({
         gameId: args.gameId,
         level: args.won ? args.level + 1 : args.level,
         bestScore: pointsEarned,
-        completedAt: args.won ? Date.now() : undefined,
+        ...(args.won ? { completedAt: Date.now() } : {}),
       });
     }
 

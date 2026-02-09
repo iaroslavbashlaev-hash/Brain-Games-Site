@@ -3,7 +3,10 @@ import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../convex/_generated/api";
 import { SignInForm } from "./SignInForm";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
+import { NumismatGame } from "./games/NumismatGame";
+import { FrogGame } from "./games/FrogGame";
+import { FirefliesGame } from "./games/FirefliesGame";
 
 // Генерируем хаотичные позиции частиц один раз
 const generateParticles = (count: number) => {
@@ -29,6 +32,7 @@ export default function App() {
   const [isInGamesSection, setIsInGamesSection] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(true);
   const headerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [activeGame, setActiveGame] = useState<null | "numismat" | "frog" | "fireflies">(null);
   
   // Авторизация
   const { signOut, signIn } = useAuthActions();
@@ -452,11 +456,28 @@ export default function App() {
               {gameIcons.map((game, index) => {
                 const isInDev = !game.icon || game.icon.trim() === "";
                 const title = isInDev ? "В разработке" : game.name;
+                const playableGameId =
+                  game.name === "Нумизмат"
+                    ? "numismat"
+                    : game.name === "Лягушка"
+                      ? "frog"
+                      : game.name === "Светлячки"
+                        ? "fireflies"
+                        : null;
 
                 return (
                   <div
                     key={index}
                     aria-disabled={isInDev}
+                    onClick={() => {
+                      if (isInDev) return;
+                      if (!user) return;
+                      if (playableGameId) {
+                        setActiveGame(playableGameId);
+                      } else {
+                        toast.message("Игра в разработке");
+                      }
+                    }}
                     className={[
                       "group relative aspect-square bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden transition-all duration-500",
                       isInDev
@@ -625,6 +646,33 @@ export default function App() {
               </svg>
             </button>
             <SignInForm onClose={() => setShowAuthModal(false)} />
+          </div>
+        </div>
+      )}
+
+      {/* Game Modal */}
+      {activeGame && (
+        <div
+          className="fixed inset-0 z-[95] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setActiveGame(null)}
+        >
+          <div
+            className="relative w-full max-w-5xl max-h-[90vh] overflow-auto rounded-2xl border border-white/20 bg-slate-900/80 p-5 md:p-7"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setActiveGame(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+              aria-label="Закрыть"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {activeGame === "numismat" && <NumismatGame onBack={() => setActiveGame(null)} />}
+            {activeGame === "frog" && <FrogGame onBack={() => setActiveGame(null)} />}
+            {activeGame === "fireflies" && <FirefliesGame onBack={() => setActiveGame(null)} />}
           </div>
         </div>
       )}

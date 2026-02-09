@@ -266,7 +266,7 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
               <div className="text-lg font-semibold">
                 <span className="mr-2">Время:</span>
                 <span className="inline-flex align-middle">
-                  <CircularCountdown totalSeconds={GAME_DURATION_SECONDS} secondsLeft={timeLeft} size={28} />
+                  <CircularCountdown totalSeconds={GAME_DURATION_SECONDS} secondsLeft={timeLeft} size={40} />
                 </span>
               </div>
               <div className="text-lg font-semibold">

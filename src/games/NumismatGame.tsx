@@ -204,7 +204,7 @@ export function NumismatGame({ onBack }: { onBack: () => void }) {
                     totalSeconds={GAME_DURATION_SECONDS}
                     secondsLeft={timeLeft}
                     running={timerStarted}
-                    size={28}
+                    size={40}
                   />
                 </span>
               </div>

@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
+import { CircularCountdown } from "../components/CircularCountdown";
 
 type Firefly = {
   id: number;
@@ -12,6 +13,7 @@ type Firefly = {
 };
 
 const ROUNDS_PER_GAME = 3;
+const GAME_DURATION_SECONDS = 60;
 
 export function FirefliesGame({ onBack }: { onBack: () => void }) {
   const progress = useQuery(api.scores.getGameProgress, { gameId: "fireflies" });
@@ -27,6 +29,21 @@ export function FirefliesGame({ onBack }: { onBack: () => void }) {
   const [numFireflies, setNumFireflies] = useState<number>(4);
   const [numTargets, setNumTargets] = useState<number>(2);
   const [submittingResult, setSubmittingResult] = useState<boolean>(false);
+  const [timeLeft, setTimeLeft] = useState<number>(GAME_DURATION_SECONDS);
+
+  useEffect(() => {
+    if (gameState === "idle" || gameState === "finished") return;
+    if (timeLeft <= 0) return;
+    const t = setInterval(() => setTimeLeft((p) => p - 1), 1000);
+    return () => clearInterval(t);
+  }, [gameState, timeLeft]);
+
+  useEffect(() => {
+    if (gameState !== "idle" && gameState !== "finished" && timeLeft === 0) {
+      void endGame();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, gameState]);
 
   const generateFireflies = (total: number, targets: number) => {
     const newFireflies: Array<Firefly> = [];
@@ -60,6 +77,7 @@ export function FirefliesGame({ onBack }: { onBack: () => void }) {
   const startGame = () => {
     setScore(0);
     setRound(1);
+    setTimeLeft(GAME_DURATION_SECONDS);
     const flies = Math.min(4 + level, 12);
     const targets = Math.min(2 + Math.floor(level / 2), 6);
     setNumFireflies(flies);
@@ -192,6 +210,12 @@ export function FirefliesGame({ onBack }: { onBack: () => void }) {
               </div>
               <div className="text-lg font-semibold">
                 Раунд: <span className="text-white font-bold">{round}/{ROUNDS_PER_GAME}</span>
+              </div>
+              <div className="text-lg font-semibold">
+                <span className="mr-2">Время:</span>
+                <span className="inline-flex align-middle">
+                  <CircularCountdown totalSeconds={GAME_DURATION_SECONDS} secondsLeft={timeLeft} size={28} />
+                </span>
               </div>
             </div>
 

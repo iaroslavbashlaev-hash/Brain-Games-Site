@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
+import { CircularCountdown } from "../components/CircularCountdown";
 
 const COIN_TYPES: Array<string> = ["🪙", "💰", "💴", "💵", "💶", "💷", "💸", "🏅"];
 const GAME_DURATION_SECONDS = 60;
@@ -193,9 +194,14 @@ export function NumismatGame({ onBack }: { onBack: () => void }) {
                 Счёт: <span className="text-white font-bold">{score}</span>
               </div>
               <div className="text-lg font-semibold">
-                Время:{" "}
-                <span className="text-white font-bold inline-block min-w-[3.5rem] text-right">
-                  {timerStarted ? `${timeLeft}с` : ""}
+                <span className="mr-2">Время:</span>
+                <span className="inline-flex align-middle">
+                  <CircularCountdown
+                    totalSeconds={GAME_DURATION_SECONDS}
+                    secondsLeft={timeLeft}
+                    running={timerStarted}
+                    size={28}
+                  />
                 </span>
               </div>
               <div className="text-lg font-semibold">

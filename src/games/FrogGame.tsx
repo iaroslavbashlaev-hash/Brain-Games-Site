@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
+import { CircularCountdown } from "../components/CircularCountdown";
 
 type LilyPad = {
   id: number;
@@ -70,7 +71,7 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
   }, [userPath]);
 
   useEffect(() => {
-    if (gameState !== "playing") return;
+    if (gameState !== "showing" && gameState !== "playing") return;
     if (timeLeft <= 0) return;
     const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearInterval(timer);
@@ -259,7 +260,10 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
                 Счёт: <span className="text-white font-bold">{score}</span>
               </div>
               <div className="text-lg font-semibold">
-                Время: <span className="text-white font-bold">{timeLeft}с</span>
+                <span className="mr-2">Время:</span>
+                <span className="inline-flex align-middle">
+                  <CircularCountdown totalSeconds={GAME_DURATION_SECONDS} secondsLeft={timeLeft} size={28} />
+                </span>
               </div>
               <div className="text-lg font-semibold">
                 Ход: <span className="text-white font-bold">{userPath.length + 1}</span>

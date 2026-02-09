@@ -138,7 +138,8 @@ export const addPoints = mutation({
     // - за этот (gameId, level, difficulty) ещё не начисляли ранее
     let shouldReward = args.won && !alreadyCompletedLevel;
     if (shouldReward) {
-      const existingReward = await ctx.db
+      // NOTE: there may be legacy duplicates in pointsHistory; don't use .unique()
+      const existingRewards = await ctx.db
         .query("pointsHistory")
         .withIndex("by_userId_and_gameId_and_level_and_difficulty", (q) =>
           q
@@ -147,8 +148,8 @@ export const addPoints = mutation({
             .eq("level", args.level)
             .eq("difficulty", args.difficulty),
         )
-        .unique();
-      if (existingReward) {
+        .take(1);
+      if (existingRewards.length > 0) {
         shouldReward = false;
       }
     }

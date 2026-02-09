@@ -487,6 +487,11 @@ export default function App() {
 
                     {/* Content */}
                     <div className="relative z-10 h-full flex flex-col items-center justify-center p-4 text-center">
+                      {!isInDev && (
+                        <div className="text-4xl md:text-5xl mb-3 group-hover:scale-110 transition-transform duration-300">
+                          {game.icon}
+                        </div>
+                      )}
                       <h3
                         className={[
                           "font-semibold transition-colors duration-300",

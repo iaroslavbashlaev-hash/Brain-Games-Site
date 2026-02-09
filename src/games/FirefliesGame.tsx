@@ -105,7 +105,19 @@ export function FirefliesGame({ onBack }: { onBack: () => void }) {
       toast.success("Правильно! +10");
     } else {
       setScore((prev) => prev - 5);
-      toast.error("Неправильно! -5");
+      toast.error("Неправильно! -5 — игра завершена");
+      // Wrong click ends the current game immediately.
+      setGameState("moving");
+      setTimeout(() => {
+        if (round < GAMES_PER_SESSION) {
+          setRound((prev) => prev + 1);
+          setGameState("showing");
+          generateFireflies(numFireflies, numTargets);
+        } else {
+          void endGame();
+        }
+      }, 700);
+      return;
     }
 
     const allTargetsClicked = newFireflies.filter((f) => f.isTarget).every((f) => f.clicked);

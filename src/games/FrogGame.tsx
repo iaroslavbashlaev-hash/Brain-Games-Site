@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
@@ -11,8 +11,39 @@ type LilyPad = {
   clicked: boolean;
 };
 
-const MAX_ATTEMPTS = 3;
 const GAME_DURATION_SECONDS = 60;
+const PAD_MIN_DISTANCE = 16; // in "percent points" of the container (roughly prevents overlap)
+
+function dist(a: { x: number; y: number }, b: { x: number; y: number }) {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function generateNonOverlappingPads(count: number): Array<{ x: number; y: number }> {
+  const pads: Array<{ x: number; y: number }> = [];
+  const maxAttempts = 4000;
+
+  for (let i = 0; i < maxAttempts && pads.length < count; i++) {
+    const candidate = {
+      x: Math.random() * 80 + 10,
+      y: Math.random() * 75 + 12,
+    };
+    if (pads.every((p) => dist(p, candidate) >= PAD_MIN_DISTANCE)) {
+      pads.push(candidate);
+    }
+  }
+
+  // Fallback: if we couldn't place all pads (unlikely), just fill the rest without constraint
+  while (pads.length < count) {
+    pads.push({
+      x: Math.random() * 80 + 10,
+      y: Math.random() * 75 + 12,
+    });
+  }
+
+  return pads;
+}
 
 export function FrogGame({ onBack }: { onBack: () => void }) {
   const progress = useQuery(api.scores.getGameProgress, { gameId: "frog" });
@@ -26,11 +57,17 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
   const [path, setPath] = useState<Array<number>>([]);
   const [userPath, setUserPath] = useState<Array<number>>([]);
   const [frogPosition, setFrogPosition] = useState<number>(-1);
-  const [attempts, setAttempts] = useState<number>(MAX_ATTEMPTS);
   const [score, setScore] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState<number>(GAME_DURATION_SECONDS);
   const [numJumps, setNumJumps] = useState<number>(3);
   const [submittingResult, setSubmittingResult] = useState<boolean>(false);
+  const [wrongPadId, setWrongPadId] = useState<number | null>(null);
+
+  const clickOrderByPadId = useMemo(() => {
+    const m = new Map<number, number>();
+    userPath.forEach((padId, idx) => m.set(padId, idx + 1));
+    return m;
+  }, [userPath]);
 
   useEffect(() => {
     if (gameState !== "playing") return;
@@ -49,11 +86,12 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
   const generateLilyPads = (jumps: number) => {
     const pads: Array<LilyPad> = [];
     const numPads = jumps + 3;
+    const positions = generateNonOverlappingPads(numPads);
     for (let i = 0; i < numPads; i++) {
       pads.push({
         id: i,
-        x: Math.random() * 80 + 10,
-        y: Math.random() * 75 + 12,
+        x: positions[i].x,
+        y: positions[i].y,
         visited: false,
         clicked: false,
       });
@@ -90,11 +128,16 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
 
   const startGame = () => {
     setScore(0);
-    setAttempts(MAX_ATTEMPTS);
     setTimeLeft(GAME_DURATION_SECONDS);
     const jumps = Math.min(3 + level, 10);
     setNumJumps(jumps);
     generateLilyPads(jumps);
+  };
+
+  const goToNextSequence = () => {
+    setWrongPadId(null);
+    setUserPath([]);
+    generateLilyPads(numJumps);
   };
 
   const handleLilyPadClick = (id: number) => {
@@ -110,14 +153,13 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
     const correct = path[currentIndex] === id;
 
     if (!correct) {
-      toast.error("Неправильно! -5");
+      toast.error("Неправильно! Штраф -5 и следующий уровень");
       setScore((prev) => prev - 5);
-      setAttempts((prev) => prev - 1);
+      setWrongPadId(id);
 
       setTimeout(() => {
-        setUserPath([]);
-        setLilyPads((prev) => prev.map((p) => ({ ...p, clicked: false })));
-      }, 600);
+        goToNextSequence();
+      }, 900);
       return;
     }
 
@@ -220,7 +262,7 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
                 Время: <span className="text-white font-bold">{timeLeft}с</span>
               </div>
               <div className="text-lg font-semibold">
-                Попытки: <span className="text-white font-bold">{attempts}</span>
+                Ход: <span className="text-white font-bold">{userPath.length + 1}</span>
               </div>
             </div>
 
@@ -231,12 +273,14 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
                   onClick={() => handleLilyPadClick(pad.id)}
                   disabled={gameState !== "playing"}
                   className={[
-                    "absolute w-16 h-16 rounded-full transition-all shadow-lg border border-white/10",
-                    pad.clicked
-                      ? "bg-emerald-500/90"
-                      : pad.visited
-                        ? "bg-yellow-300/90 ring-4 ring-white/60"
-                        : "bg-emerald-400/70 hover:bg-emerald-300/70",
+                    "absolute w-16 h-16 rounded-full transition-all shadow-lg border border-white/10 flex items-center justify-center",
+                    wrongPadId === pad.id
+                      ? "bg-rose-500/80 ring-4 ring-rose-200/80"
+                      : pad.clicked
+                        ? "bg-emerald-300/80 ring-4 ring-white/40"
+                        : pad.visited
+                          ? "bg-cyan-200/80 ring-4 ring-white/60"
+                          : "bg-emerald-400/55 hover:bg-emerald-300/65",
                     gameState === "playing" ? "cursor-pointer hover:scale-110" : "cursor-default",
                   ].join(" ")}
                   style={{
@@ -245,15 +289,23 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
                     transform: "translate(-50%, -50%)",
                   }}
                 >
-                  <span className="text-3xl">
-                    {frogPosition === pad.id ? "🐸" : "🌿"}
+                  <span className="text-3xl select-none">
+                    {frogPosition === pad.id ? "🐸" : "🪷"}
                   </span>
+                  {/* click order number */}
+                  {pad.clicked && (
+                    <span className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-black/60 border border-white/20 text-white text-sm font-bold flex items-center justify-center">
+                      {clickOrderByPadId.get(pad.id)}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
 
             <div className="mt-4 text-center text-white/60">
-              {gameState === "showing" ? "Запомните путь..." : "Кликайте по кувшинкам по памяти!"}
+              {gameState === "showing"
+                ? "Запомните путь лягушки по кувшинкам..."
+                : "Кликайте по кувшинкам в правильном порядке!"}
             </div>
 
             <button

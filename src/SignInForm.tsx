@@ -6,6 +6,19 @@ import { toast } from "sonner";
 // Функция для получения понятного сообщения об ошибке
 function getErrorMessage(error: Error, flow: "signIn" | "signUp"): string {
   const message = error.message.toLowerCase();
+
+  // Convex Auth конкретные коды
+  if (message.includes("invalidaccountid")) {
+    return flow === "signIn"
+      ? "Пользователь не найден. Проверьте email или нажмите «Зарегистрироваться»."
+      : "Не удалось создать аккаунт. Попробуйте другой email.";
+  }
+  if (message.includes("invalidsecret")) {
+    return "Неверный пароль. Проверьте правильность ввода.";
+  }
+  if (message.includes("toomanyfailedattempts")) {
+    return "Слишком много неудачных попыток. Подождите несколько минут и попробуйте снова.";
+  }
   
   // Ошибки пароля
   if (message.includes("invalid password") || message.includes("wrong password") || message.includes("incorrect password")) {

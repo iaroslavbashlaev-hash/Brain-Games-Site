@@ -219,7 +219,7 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
               Лягушка
             </h2>
             <p className="mt-3 text-white/70">
-              Запомните путь лягушки по кувшинкам, затем повторите его. У вас {MAX_ATTEMPTS} попытки.
+              Запомните путь лягушки по кувшинкам, затем повторите его. За ошибку — штраф и переход на следующий уровень.
             </p>
             <button
               onClick={startGame}

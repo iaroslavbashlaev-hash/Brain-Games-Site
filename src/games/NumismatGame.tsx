@@ -78,6 +78,14 @@ export function NumismatGame({ onBack }: { onBack: () => void }) {
     setTimeout(() => nextCoin(), 450);
   };
 
+  const handleRemember = () => {
+    if (gameState !== "playing") return;
+    if (showResult) return;
+    // Memorization phase: we don't score until we have enough history to compare.
+    setCoins((prev) => [...prev, currentCoin]);
+    nextCoin();
+  };
+
   const endGame = async () => {
     if (submittingResult) return;
     setSubmittingResult(true);
@@ -193,22 +201,43 @@ export function NumismatGame({ onBack }: { onBack: () => void }) {
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-4">
-              <button
-                onClick={() => handleAnswer(true)}
-                disabled={showResult}
-                className="rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 px-6 py-5 font-bold text-white hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                Идентична
-              </button>
-              <button
-                onClick={() => handleAnswer(false)}
-                disabled={showResult}
-                className="rounded-xl bg-gradient-to-r from-rose-400 to-pink-500 px-6 py-5 font-bold text-white hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                Не идентична
-              </button>
-            </div>
+            {coins.length < stepsBack ? (
+              <>
+                <div className="mt-6 text-center text-white/60">
+                  Запомните монету. Сравнение начнётся через{" "}
+                  <span className="text-white/90 font-semibold">
+                    {stepsBack - coins.length}
+                  </span>{" "}
+                  ход(а).
+                </div>
+                <div className="mt-4">
+                  <button
+                    onClick={handleRemember}
+                    disabled={showResult}
+                    className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-purple-500 px-6 py-5 font-bold text-white hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    Запомнил
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="mt-6 grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => handleAnswer(true)}
+                  disabled={showResult}
+                  className="rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 px-6 py-5 font-bold text-white hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  Идентична
+                </button>
+                <button
+                  onClick={() => handleAnswer(false)}
+                  disabled={showResult}
+                  className="rounded-xl bg-gradient-to-r from-rose-400 to-pink-500 px-6 py-5 font-bold text-white hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  Не идентична
+                </button>
+              </div>
+            )}
 
             <button
               onClick={() => void endGame()}

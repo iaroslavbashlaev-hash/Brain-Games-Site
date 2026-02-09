@@ -201,8 +201,8 @@ export default function App() {
     { id: "numismat", name: "Нумизмат", icon: "🪙", color: "bg-amber-500" },
     { id: "frog", name: "Лягушка", icon: "🐸", color: "bg-green-500" },
     // Пазл отправлен в "В разработке"
-    { id: "puzzle", name: "Пазл", icon: "🧩", color: "bg-green-500", status: "dev" as const },
-    { id: "fireflies", name: "Светлячки", icon: "🌙", color: "bg-yellow-400" },
+    { id: "fireflies", name: "Светлячки", icon: "🪲", color: "bg-yellow-400" },
+    { id: "puzzle", name: "", icon: "", color: "bg-green-500", status: "dev" as const },
     { id: "dev-1", name: "", icon: "", color: "bg-yellow-500", status: "dev" as const },
     { id: "dev-2", name: "", icon: "", color: "bg-orange-500", status: "dev" as const },
     { id: "dev-3", name: "", icon: "", color: "bg-teal-500", status: "dev" as const },

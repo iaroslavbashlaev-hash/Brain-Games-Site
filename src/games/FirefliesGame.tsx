@@ -170,6 +170,7 @@ export function FirefliesGame({ onBack }: { onBack: () => void }) {
       <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6 md:p-8">
         {gameState === "idle" && (
           <div className="text-center">
+            <div className="text-6xl mb-4">🪲</div>
             <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
               Светлячки
             </h2>
@@ -245,7 +246,7 @@ export function FirefliesGame({ onBack }: { onBack: () => void }) {
                     transform: "translate(-50%, -50%)",
                   }}
                 >
-                  ✨
+                  🪲
                 </button>
               ))}
             </div>

@@ -452,7 +452,6 @@ export default function App() {
               {gameIcons.map((game, index) => {
                 const isInDev = !game.icon || game.icon.trim() === "";
                 const title = isInDev ? "В разработке" : game.name;
-                const icon = isInDev ? "🚧" : game.icon;
 
                 return (
                   <div
@@ -477,47 +476,28 @@ export default function App() {
                       ].join(" ")}
                     />
 
-                    {/* In-dev cartoon blobs + dots */}
+                    {/* In-dev subtle pattern (site palette) */}
                     {isInDev && (
                       <>
-                        <div className="absolute -top-10 -left-10 h-32 w-32 rounded-full bg-pink-500/25 blur-xl" />
-                        <div className="absolute -bottom-12 -right-10 h-40 w-40 rounded-full bg-yellow-400/20 blur-xl" />
-                        <div className="absolute inset-0 opacity-70 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.10)_0,rgba(255,255,255,0.10)_2px,transparent_2px)] [background-size:18px_18px]" />
+                        <div className="absolute -top-10 -left-10 h-32 w-32 rounded-full bg-cyan-400/15 blur-xl" />
+                        <div className="absolute -bottom-12 -right-10 h-40 w-40 rounded-full bg-purple-500/15 blur-xl" />
+                        <div className="absolute inset-0 opacity-50 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08)_0,rgba(255,255,255,0.08)_2px,transparent_2px)] [background-size:18px_18px]" />
                       </>
                     )}
 
                     {/* Content */}
                     <div className="relative z-10 h-full flex flex-col items-center justify-center p-4 text-center">
-                      <div
-                        className={[
-                          "text-4xl md:text-5xl mb-3 transition-transform duration-300",
-                          isInDev ? "scale-100 animate-wiggle-slow drop-shadow-[0_8px_18px_rgba(0,0,0,0.35)]" : "group-hover:scale-110",
-                        ].join(" ")}
-                      >
-                        {icon}
-                      </div>
                       <h3
                         className={[
-                          "text-sm md:text-base font-semibold transition-colors duration-300",
-                          isInDev ? "text-white/80" : "text-white/90 group-hover:text-white",
+                          "font-semibold transition-colors duration-300",
+                          isInDev
+                            ? "text-xl md:text-2xl bg-gradient-to-r from-cyan-300 to-purple-400 bg-clip-text text-transparent"
+                            : "text-sm md:text-base text-white/90 group-hover:text-white",
                         ].join(" ")}
                       >
                         {title}
                       </h3>
-
-                      {isInDev && (
-                        <p className="mt-2 text-xs text-white/70">
-                          Скоро появится игра!
-                        </p>
-                      )}
                     </div>
-
-                    {/* Badge */}
-                    {isInDev && (
-                      <div className="absolute top-3 right-3 z-20 rounded-2xl border-2 border-white/40 bg-gradient-to-r from-pink-500/70 via-purple-500/60 to-yellow-400/60 px-3 py-1 text-xs font-extrabold text-white shadow-lg backdrop-blur-sm rotate-2">
-                        Скоро!
-                      </div>
-                    )}
 
                     {/* Hover effect overlay */}
                     <div

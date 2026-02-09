@@ -109,25 +109,59 @@ export const addPoints = mutation({
       throw new Error("Необходимо войти в аккаунт");
     }
 
-    // Рассчитываем очки
-    const multiplier = DIFFICULTY_MULTIPLIERS[args.difficulty];
-    const levelBonus = args.level * 1;
-    const pointsEarned = args.won 
-      ? (BASE_POINTS_PER_LEVEL + levelBonus) * multiplier 
-      : Math.floor((BASE_POINTS_PER_LEVEL * 0.1) * multiplier); // 10% за попытку
-
-    // Обновляем общие очки
+    // Загружаем общий счёт
     const existingScore = await ctx.db
       .query("userScores")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .unique();
 
+    // Загружаем прогресс по игре
+    const existingProgress = await ctx.db
+      .query("gameProgress")
+      .withIndex("by_userId_and_gameId", (q) =>
+        q.eq("userId", userId).eq("gameId", args.gameId),
+      )
+      .unique();
+
+    // Если пользователь пытается пройти уже пройденный уровень — очки не начисляем
+    const alreadyCompletedLevel =
+      !!existingProgress && args.level < existingProgress.level;
+
+    // Рассчитываем "кандидат" очков
+    const multiplier = DIFFICULTY_MULTIPLIERS[args.difficulty];
+    const levelBonus = args.level * 1;
+    const candidatePoints = (BASE_POINTS_PER_LEVEL + levelBonus) * multiplier;
+
+    // Начисляем очки только если:
+    // - уровень выигран
+    // - это новый уровень (ещё не пройден)
+    // - за этот (gameId, level, difficulty) ещё не начисляли ранее
+    let shouldReward = args.won && !alreadyCompletedLevel;
+    if (shouldReward) {
+      const existingReward = await ctx.db
+        .query("pointsHistory")
+        .withIndex("by_userId_and_gameId_and_level_and_difficulty", (q) =>
+          q
+            .eq("userId", userId)
+            .eq("gameId", args.gameId)
+            .eq("level", args.level)
+            .eq("difficulty", args.difficulty),
+        )
+        .unique();
+      if (existingReward) {
+        shouldReward = false;
+      }
+    }
+
+    const pointsEarned = shouldReward ? candidatePoints : 0;
+
+    // Обновляем общие очки
     let totalPoints: number;
 
     if (existingScore) {
       totalPoints = existingScore.totalPoints + pointsEarned;
       await ctx.db.patch(existingScore._id, {
-        totalPoints,
+        ...(pointsEarned > 0 ? { totalPoints } : {}),
         gamesPlayed: existingScore.gamesPlayed + 1,
         gamesWon: args.won ? existingScore.gamesWon + 1 : existingScore.gamesWon,
       });
@@ -145,13 +179,6 @@ export const addPoints = mutation({
     }
 
     // Обновляем прогресс по игре
-    const existingProgress = await ctx.db
-      .query("gameProgress")
-      .withIndex("by_userId_and_gameId", (q) => 
-        q.eq("userId", userId).eq("gameId", args.gameId)
-      )
-      .unique();
-
     if (existingProgress) {
       const updates: { level?: number; bestScore?: number; completedAt?: number } = {};
       
@@ -178,14 +205,16 @@ export const addPoints = mutation({
     }
 
     // Записываем в историю
-    await ctx.db.insert("pointsHistory", {
-      userId,
-      gameId: args.gameId,
-      level: args.level,
-      difficulty: args.difficulty,
-      pointsEarned,
-      earnedAt: Date.now(),
-    });
+    if (pointsEarned > 0) {
+      await ctx.db.insert("pointsHistory", {
+        userId,
+        gameId: args.gameId,
+        level: args.level,
+        difficulty: args.difficulty,
+        pointsEarned,
+        earnedAt: Date.now(),
+      });
+    }
 
     return {
       pointsEarned,

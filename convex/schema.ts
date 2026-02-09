@@ -32,7 +32,14 @@ const applicationTables = {
     difficulty: v.string(), // "easy", "medium", "hard"
     pointsEarned: v.number(),
     earnedAt: v.number(),
-  }).index("by_userId", ["userId"]),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_and_gameId_and_level_and_difficulty", [
+      "userId",
+      "gameId",
+      "level",
+      "difficulty",
+    ]),
 };
 
 export default defineSchema({

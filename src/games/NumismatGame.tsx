@@ -105,7 +105,11 @@ export function NumismatGame({ onBack }: { onBack: () => void }) {
         difficulty: "easy",
         won,
       });
-      toast.success(`Начислено: ${res.pointsEarned} очков`);
+      if (res.pointsEarned > 0) {
+        toast.success(`Начислено: ${res.pointsEarned} очков`);
+      } else {
+        toast.message("Этот уровень уже пройден — очки не начислены");
+      }
     } catch (e) {
       toast.error("Не удалось сохранить результат");
       // eslint-disable-next-line no-console

@@ -3,16 +3,18 @@ import { Password } from "@convex-dev/auth/providers/Password";
 import { Anonymous } from "@convex-dev/auth/providers/Anonymous";
 import { query } from "./_generated/server";
 import { v } from "convex/values";
-import { DataModel } from "./_generated/dataModel";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
     Password({
       profile(params) {
-        return {
-          email: params.email as string,
-          name: params.name as string | undefined,
-        };
+        // Convex values cannot be `undefined`. Only include optional fields when present.
+        const email = typeof params.email === "string" ? params.email : "";
+        const profile: { email: string; name?: string } = { email };
+        if (typeof params.name === "string" && params.name.trim() !== "") {
+          profile.name = params.name;
+        }
+        return profile;
       },
     }),
     Anonymous,

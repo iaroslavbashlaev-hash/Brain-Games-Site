@@ -452,7 +452,7 @@ export default function App() {
               {gameIcons.map((game, index) => {
                 const isInDev = !game.icon || game.icon.trim() === "";
                 const title = isInDev ? "В разработке" : game.name;
-                const icon = isInDev ? "🛠️" : game.icon;
+                const icon = isInDev ? "🚧" : game.icon;
 
                 return (
                   <div
@@ -461,7 +461,7 @@ export default function App() {
                     className={[
                       "group relative aspect-square bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden transition-all duration-500",
                       isInDev
-                        ? "cursor-not-allowed opacity-80 hover:opacity-90"
+                        ? "cursor-not-allowed opacity-90 hover:opacity-100"
                         : "hover:border-white/30 hover:scale-105 hover:rotate-1 cursor-pointer",
                     ].join(" ")}
                     style={{
@@ -477,9 +477,13 @@ export default function App() {
                       ].join(" ")}
                     />
 
-                    {/* In-dev stripes overlay */}
+                    {/* In-dev cartoon blobs + dots */}
                     {isInDev && (
-                      <div className="absolute inset-0 opacity-60 bg-[repeating-linear-gradient(45deg,rgba(255,255,255,0.06)_0,rgba(255,255,255,0.06)_10px,transparent_10px,transparent_20px)]" />
+                      <>
+                        <div className="absolute -top-10 -left-10 h-32 w-32 rounded-full bg-pink-500/25 blur-xl" />
+                        <div className="absolute -bottom-12 -right-10 h-40 w-40 rounded-full bg-yellow-400/20 blur-xl" />
+                        <div className="absolute inset-0 opacity-70 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.10)_0,rgba(255,255,255,0.10)_2px,transparent_2px)] [background-size:18px_18px]" />
+                      </>
                     )}
 
                     {/* Content */}
@@ -487,7 +491,7 @@ export default function App() {
                       <div
                         className={[
                           "text-4xl md:text-5xl mb-3 transition-transform duration-300",
-                          isInDev ? "scale-100" : "group-hover:scale-110",
+                          isInDev ? "scale-100 animate-wiggle-slow drop-shadow-[0_8px_18px_rgba(0,0,0,0.35)]" : "group-hover:scale-110",
                         ].join(" ")}
                       >
                         {icon}
@@ -502,16 +506,16 @@ export default function App() {
                       </h3>
 
                       {isInDev && (
-                        <p className="mt-2 text-xs text-white/60">
-                          Скоро появится
+                        <p className="mt-2 text-xs text-white/70">
+                          Скоро появится игра!
                         </p>
                       )}
                     </div>
 
                     {/* Badge */}
                     {isInDev && (
-                      <div className="absolute top-3 right-3 z-20 rounded-full border border-white/20 bg-black/40 px-3 py-1 text-xs text-white/80 backdrop-blur-sm">
-                        В разработке
+                      <div className="absolute top-3 right-3 z-20 rounded-2xl border-2 border-white/40 bg-gradient-to-r from-pink-500/70 via-purple-500/60 to-yellow-400/60 px-3 py-1 text-xs font-extrabold text-white shadow-lg backdrop-blur-sm rotate-2">
+                        Скоро!
                       </div>
                     )}
 

@@ -235,3 +235,13 @@ html {
 .blur-transition {
   transition: filter 1.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* Cartoon-ish placeholder wiggle (for "in development" cards) */
+@keyframes wiggleSlow {
+  0%, 100% { transform: rotate(-1deg) scale(1); }
+  50% { transform: rotate(1deg) scale(1.03); }
+}
+
+.animate-wiggle-slow {
+  animation: wiggleSlow 3.8s ease-in-out infinite;
+}

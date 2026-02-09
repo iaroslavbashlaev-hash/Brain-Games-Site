@@ -449,34 +449,87 @@ export default function App() {
           <div>
             {/* Игры */}
             <div className={`grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 blur-transition ${!user && !unlockAnimation ? 'blur-md pointer-events-none select-none' : ''}`}>
-              {gameIcons.map((game, index) => (
-                <div
-                  key={index}
-                  className="group relative aspect-square bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-white/30 transition-all duration-500 hover:scale-105 hover:rotate-1 cursor-pointer overflow-hidden"
-                  style={{
-                    animationDelay: `${index * 0.1}s`,
-                  }}
-                >
-                  {/* Background gradient */}
-                  <div className={`absolute inset-0 ${game.color} opacity-20 group-hover:opacity-40 transition-opacity duration-300`}></div>
-                  
-                  {/* Content */}
-                  <div className="relative z-10 h-full flex flex-col items-center justify-center p-4 text-center">
-                    <div className="text-4xl md:text-5xl mb-3 group-hover:scale-110 transition-transform duration-300">
-                      {game.icon}
-                    </div>
-                    <h3 className="text-sm md:text-base font-semibold text-white/90 group-hover:text-white transition-colors duration-300">
-                      {game.name}
-                    </h3>
-                  </div>
+              {gameIcons.map((game, index) => {
+                const isInDev = !game.icon || game.icon.trim() === "";
+                const title = isInDev ? "В разработке" : game.name;
+                const icon = isInDev ? "🛠️" : game.icon;
 
-                  {/* Hover effect overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  
-                  {/* Shine effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out"></div>
-                </div>
-              ))}
+                return (
+                  <div
+                    key={index}
+                    aria-disabled={isInDev}
+                    className={[
+                      "group relative aspect-square bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden transition-all duration-500",
+                      isInDev
+                        ? "cursor-not-allowed opacity-80 hover:opacity-90"
+                        : "hover:border-white/30 hover:scale-105 hover:rotate-1 cursor-pointer",
+                    ].join(" ")}
+                    style={{
+                      animationDelay: `${index * 0.1}s`,
+                    }}
+                  >
+                    {/* Background gradient */}
+                    <div
+                      className={[
+                        "absolute inset-0 opacity-20 transition-opacity duration-300",
+                        game.color,
+                        isInDev ? "" : "group-hover:opacity-40",
+                      ].join(" ")}
+                    />
+
+                    {/* In-dev stripes overlay */}
+                    {isInDev && (
+                      <div className="absolute inset-0 opacity-60 bg-[repeating-linear-gradient(45deg,rgba(255,255,255,0.06)_0,rgba(255,255,255,0.06)_10px,transparent_10px,transparent_20px)]" />
+                    )}
+
+                    {/* Content */}
+                    <div className="relative z-10 h-full flex flex-col items-center justify-center p-4 text-center">
+                      <div
+                        className={[
+                          "text-4xl md:text-5xl mb-3 transition-transform duration-300",
+                          isInDev ? "scale-100" : "group-hover:scale-110",
+                        ].join(" ")}
+                      >
+                        {icon}
+                      </div>
+                      <h3
+                        className={[
+                          "text-sm md:text-base font-semibold transition-colors duration-300",
+                          isInDev ? "text-white/80" : "text-white/90 group-hover:text-white",
+                        ].join(" ")}
+                      >
+                        {title}
+                      </h3>
+
+                      {isInDev && (
+                        <p className="mt-2 text-xs text-white/60">
+                          Скоро появится
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Badge */}
+                    {isInDev && (
+                      <div className="absolute top-3 right-3 z-20 rounded-full border border-white/20 bg-black/40 px-3 py-1 text-xs text-white/80 backdrop-blur-sm">
+                        В разработке
+                      </div>
+                    )}
+
+                    {/* Hover effect overlay */}
+                    <div
+                      className={[
+                        "absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent transition-opacity duration-300",
+                        isInDev ? "opacity-70" : "opacity-0 group-hover:opacity-100",
+                      ].join(" ")}
+                    />
+
+                    {/* Shine effect */}
+                    {!isInDev && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

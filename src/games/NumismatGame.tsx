@@ -19,22 +19,24 @@ export function NumismatGame({ onBack }: { onBack: () => void }) {
   const [currentCoin, setCurrentCoin] = useState<string>("");
   const [score, setScore] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState<number>(GAME_DURATION_SECONDS);
+  const [timerStarted, setTimerStarted] = useState<boolean>(false);
   const [showResult, setShowResult] = useState<boolean>(false);
   const [submittingResult, setSubmittingResult] = useState<boolean>(false);
 
   useEffect(() => {
     if (gameState !== "playing") return;
+    if (!timerStarted) return;
     if (timeLeft <= 0) return;
     const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearInterval(timer);
-  }, [gameState, timeLeft]);
+  }, [gameState, timerStarted, timeLeft]);
 
   useEffect(() => {
-    if (gameState === "playing" && timeLeft === 0) {
+    if (gameState === "playing" && timerStarted && timeLeft === 0) {
       void endGame();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState, timeLeft]);
+  }, [gameState, timerStarted, timeLeft]);
 
   const nextCoin = () => {
     const newCoin = COIN_TYPES[Math.floor(Math.random() * COIN_TYPES.length)];
@@ -47,6 +49,7 @@ export function NumismatGame({ onBack }: { onBack: () => void }) {
     setScore(0);
     setCoins([]);
     setTimeLeft(GAME_DURATION_SECONDS);
+    setTimerStarted(false);
     setShowResult(false);
     nextCoin();
   };
@@ -54,6 +57,7 @@ export function NumismatGame({ onBack }: { onBack: () => void }) {
   const handleAnswer = (isIdentical: boolean) => {
     if (gameState !== "playing") return;
     if (showResult) return;
+    if (!timerStarted) setTimerStarted(true);
 
     if (coins.length < stepsBack) {
       setCoins((prev) => [...prev, currentCoin]);
@@ -81,6 +85,7 @@ export function NumismatGame({ onBack }: { onBack: () => void }) {
   const handleRemember = () => {
     if (gameState !== "playing") return;
     if (showResult) return;
+    if (!timerStarted) setTimerStarted(true);
     // Memorization phase: we don't score until we have enough history to compare.
     setCoins((prev) => [...prev, currentCoin]);
     nextCoin();
@@ -188,7 +193,10 @@ export function NumismatGame({ onBack }: { onBack: () => void }) {
                 Счёт: <span className="text-white font-bold">{score}</span>
               </div>
               <div className="text-lg font-semibold">
-                Время: <span className="text-white font-bold">{timeLeft}с</span>
+                Время:{" "}
+                <span className="text-white font-bold">
+                  {timerStarted ? `${timeLeft}с` : "старт после «Запомнил»"}
+                </span>
               </div>
               <div className="text-lg font-semibold">
                 Шаг: <span className="text-white font-bold">{stepsBack}</span>

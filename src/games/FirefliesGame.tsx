@@ -2,7 +2,6 @@ import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
-import { CircularCountdown } from "../components/CircularCountdown";
 
 type Firefly = {
   id: number;
@@ -12,8 +11,8 @@ type Firefly = {
   clicked: boolean;
 };
 
-const ROUNDS_PER_GAME = 3;
-const GAME_DURATION_SECONDS = 60;
+const GAMES_PER_SESSION = 4;
+const MIN_DISTANCE = 14; // in "percent points" of the container
 
 export function FirefliesGame({ onBack }: { onBack: () => void }) {
   const progress = useQuery(api.scores.getGameProgress, { gameId: "fireflies" });
@@ -29,29 +28,36 @@ export function FirefliesGame({ onBack }: { onBack: () => void }) {
   const [numFireflies, setNumFireflies] = useState<number>(4);
   const [numTargets, setNumTargets] = useState<number>(2);
   const [submittingResult, setSubmittingResult] = useState<boolean>(false);
-  const [timeLeft, setTimeLeft] = useState<number>(GAME_DURATION_SECONDS);
 
-  useEffect(() => {
-    if (gameState === "idle" || gameState === "finished") return;
-    if (timeLeft <= 0) return;
-    const t = setInterval(() => setTimeLeft((p) => p - 1), 1000);
-    return () => clearInterval(t);
-  }, [gameState, timeLeft]);
+  const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
 
-  useEffect(() => {
-    if (gameState !== "idle" && gameState !== "finished" && timeLeft === 0) {
-      void endGame();
+  const generateNonOverlappingPositions = (count: number): Array<{ x: number; y: number }> => {
+    const positions: Array<{ x: number; y: number }> = [];
+    const maxAttempts = 4000;
+    for (let i = 0; i < maxAttempts && positions.length < count; i++) {
+      const candidate = { x: Math.random() * 80 + 10, y: Math.random() * 75 + 12 };
+      if (positions.every((p) => dist(p, candidate) >= MIN_DISTANCE)) {
+        positions.push(candidate);
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, gameState]);
+    while (positions.length < count) {
+      positions.push({ x: Math.random() * 80 + 10, y: Math.random() * 75 + 12 });
+    }
+    return positions;
+  };
 
   const generateFireflies = (total: number, targets: number) => {
+    const positions = generateNonOverlappingPositions(total);
     const newFireflies: Array<Firefly> = [];
     for (let i = 0; i < total; i++) {
       newFireflies.push({
         id: i,
-        x: Math.random() * 80 + 10,
-        y: Math.random() * 75 + 12,
+        x: positions[i].x,
+        y: positions[i].y,
         isTarget: i < targets,
         clicked: false,
       });
@@ -65,10 +71,11 @@ export function FirefliesGame({ onBack }: { onBack: () => void }) {
   };
 
   const shuffleFireflies = (flies: Array<Firefly>) => {
+    const positions = generateNonOverlappingPositions(flies.length);
     const shuffled = flies.map((f) => ({
       ...f,
-      x: Math.random() * 80 + 10,
-      y: Math.random() * 75 + 12,
+      x: positions[f.id]?.x ?? (Math.random() * 80 + 10),
+      y: positions[f.id]?.y ?? (Math.random() * 75 + 12),
     }));
     setFireflies(shuffled);
     setTimeout(() => setGameState("selecting"), 1200);
@@ -77,7 +84,6 @@ export function FirefliesGame({ onBack }: { onBack: () => void }) {
   const startGame = () => {
     setScore(0);
     setRound(1);
-    setTimeLeft(GAME_DURATION_SECONDS);
     const flies = Math.min(4 + level, 12);
     const targets = Math.min(2 + Math.floor(level / 2), 6);
     setNumFireflies(flies);
@@ -106,7 +112,7 @@ export function FirefliesGame({ onBack }: { onBack: () => void }) {
     if (!allTargetsClicked) return;
 
     setTimeout(() => {
-      if (round < ROUNDS_PER_GAME) {
+      if (round < GAMES_PER_SESSION) {
         setRound((prev) => prev + 1);
         setGameState("showing");
         generateFireflies(numFireflies, numTargets);
@@ -168,7 +174,7 @@ export function FirefliesGame({ onBack }: { onBack: () => void }) {
               Светлячки
             </h2>
             <p className="mt-3 text-white/70">
-              Запомните отмеченных светлячков, затем найдите их после перемещения. {ROUNDS_PER_GAME} раунда.
+              Запомните отмеченных светлячков, затем найдите их после перемещения. Всего {GAMES_PER_SESSION} игры.
             </p>
             <button
               onClick={startGame}
@@ -213,13 +219,7 @@ export function FirefliesGame({ onBack }: { onBack: () => void }) {
                 Счёт: <span className="text-white font-bold">{score}</span>
               </div>
               <div className="text-lg font-semibold">
-                Раунд: <span className="text-white font-bold">{round}/{ROUNDS_PER_GAME}</span>
-              </div>
-              <div className="text-lg font-semibold">
-                <span className="mr-2">Время:</span>
-                <span className="inline-flex align-middle">
-                  <CircularCountdown totalSeconds={GAME_DURATION_SECONDS} secondsLeft={timeLeft} size={40} />
-                </span>
+                Игра: <span className="text-white font-bold">{round}/{GAMES_PER_SESSION}</span>
               </div>
             </div>
 

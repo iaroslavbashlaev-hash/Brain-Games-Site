@@ -33,6 +33,15 @@ export default function App() {
   const [headerVisible, setHeaderVisible] = useState(true);
   const headerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [activeGame, setActiveGame] = useState<null | "numismat" | "frog" | "fireflies">(null);
+  const [favoriteGameIds, setFavoriteGameIds] = useState<Array<string>>(() => {
+    try {
+      const raw = localStorage.getItem("favorite_games");
+      const parsed = raw ? (JSON.parse(raw) as Array<string>) : [];
+      return Array.isArray(parsed) ? parsed.slice(0, 8) : [];
+    } catch {
+      return [];
+    }
+  });
   
   // Авторизация
   const { signOut, signIn } = useAuthActions();
@@ -189,23 +198,49 @@ export default function App() {
   };
 
   const gameIcons = [
-    { name: "Нумизмат", icon: "🪙", color: "bg-amber-500" },
-    { name: "Лягушка", icon: "🐸", color: "bg-green-500" },
-    { name: "Пазл", icon: "🧩", color: "bg-green-500" },
-    { name: "Светлячки", icon: "🌙", color: "bg-yellow-400" },
-    { name: "", icon: "", color: "bg-yellow-500" },
-    { name: "", icon: "", color: "bg-orange-500" },
-    { name: "", icon: "", color: "bg-teal-500" },
-    { name: "", icon: "", color: "bg-indigo-500" },
-    { name: "", icon: "", color: "bg-gray-800" },
-    { name: "", icon: "", color: "bg-pink-500" },
-    { name: "", icon: "", color: "bg-red-600" },
-    { name: "", icon: "", color: "bg-cyan-500" },
-    { name: "", icon: "", color: "bg-amber-500" },
-    { name: "", icon: "", color: "bg-lime-500" },
-    { name: "", icon: "", color: "bg-violet-500" },
-    { name: "", icon: "", color: "bg-emerald-500" },
+    { id: "numismat", name: "Нумизмат", icon: "🪙", color: "bg-amber-500" },
+    { id: "frog", name: "Лягушка", icon: "🐸", color: "bg-green-500" },
+    // Пазл отправлен в "В разработке"
+    { id: "puzzle", name: "Пазл", icon: "🧩", color: "bg-green-500", status: "dev" as const },
+    { id: "fireflies", name: "Светлячки", icon: "🌙", color: "bg-yellow-400" },
+    { id: "dev-1", name: "", icon: "", color: "bg-yellow-500", status: "dev" as const },
+    { id: "dev-2", name: "", icon: "", color: "bg-orange-500", status: "dev" as const },
+    { id: "dev-3", name: "", icon: "", color: "bg-teal-500", status: "dev" as const },
+    { id: "dev-4", name: "", icon: "", color: "bg-indigo-500", status: "dev" as const },
+    { id: "dev-5", name: "", icon: "", color: "bg-gray-800", status: "dev" as const },
+    { id: "dev-6", name: "", icon: "", color: "bg-pink-500", status: "dev" as const },
+    { id: "dev-7", name: "", icon: "", color: "bg-red-600", status: "dev" as const },
+    { id: "dev-8", name: "", icon: "", color: "bg-cyan-500", status: "dev" as const },
+    { id: "dev-9", name: "", icon: "", color: "bg-amber-500", status: "dev" as const },
+    { id: "dev-10", name: "", icon: "", color: "bg-lime-500", status: "dev" as const },
+    { id: "dev-11", name: "", icon: "", color: "bg-violet-500", status: "dev" as const },
+    { id: "dev-12", name: "", icon: "", color: "bg-emerald-500", status: "dev" as const },
   ];
+
+  const gameList = useMemo(() => {
+    const favSet = new Set(favoriteGameIds);
+    const favorites: typeof gameIcons = [];
+    const rest: typeof gameIcons = [];
+    for (const g of gameIcons) {
+      const isDev = (g as any).status === "dev" || !g.icon || g.icon.trim() === "";
+      if (!isDev && favSet.has((g as any).id)) favorites.push(g);
+      else rest.push(g);
+    }
+    // Keep favorites in the order the user added them
+    favorites.sort(
+      (a: any, b: any) =>
+        favoriteGameIds.indexOf(a.id) - favoriteGameIds.indexOf(b.id),
+    );
+    return [...favorites, ...rest];
+  }, [favoriteGameIds]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("favorite_games", JSON.stringify(favoriteGameIds.slice(0, 8)));
+    } catch {
+      // ignore
+    }
+  }, [favoriteGameIds]);
 
   return (
     <div className="h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white overflow-x-hidden overflow-y-auto snap-y snap-mandatory">
@@ -453,21 +488,22 @@ export default function App() {
           <div>
             {/* Игры */}
             <div className={`grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 blur-transition ${!user && !unlockAnimation ? 'blur-md pointer-events-none select-none' : ''}`}>
-              {gameIcons.map((game, index) => {
-                const isInDev = !game.icon || game.icon.trim() === "";
-                const title = isInDev ? "В разработке" : game.name;
-                const playableGameId =
-                  game.name === "Нумизмат"
+              {gameList.map((game: any, index) => {
+                const isInDev = game.status === "dev" || !game.icon || game.icon.trim() === "";
+                const isFavorite = favoriteGameIds.includes(game.id);
+                const title = isInDev ? (game.name ? game.name : "В разработке") : game.name;
+                const playableGameId: null | "numismat" | "frog" | "fireflies" =
+                  game.id === "numismat"
                     ? "numismat"
-                    : game.name === "Лягушка"
+                    : game.id === "frog"
                       ? "frog"
-                      : game.name === "Светлячки"
+                      : game.id === "fireflies"
                         ? "fireflies"
                         : null;
 
                 return (
                   <div
-                    key={index}
+                    key={game.id ?? index}
                     aria-disabled={isInDev}
                     onClick={() => {
                       if (isInDev) return;
@@ -523,7 +559,52 @@ export default function App() {
                       >
                         {title}
                       </h3>
+                      {isInDev && (
+                        <p className="mt-2 text-xs text-white/60">В разработке</p>
+                      )}
                     </div>
+
+                    {/* Favorites star (only for non-dev games) */}
+                    {!isInDev && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFavoriteGameIds((prev) => {
+                            const exists = prev.includes(game.id);
+                            if (exists) {
+                              return prev.filter((x) => x !== game.id);
+                            }
+                            if (prev.length >= 8) {
+                              toast.error("Максимум 8 игр в избранном");
+                              return prev;
+                            }
+                            toast.success("Игра добавлена в избранное");
+                            return [game.id, ...prev].slice(0, 8);
+                          });
+                        }}
+                        className="absolute top-3 right-3 z-30 w-9 h-9 rounded-full border border-white/15 bg-black/25 backdrop-blur-sm flex items-center justify-center hover:bg-black/35 hover:border-white/25 transition-colors"
+                        aria-label={isFavorite ? "Убрать из избранного" : "Добавить в избранное"}
+                        title={isFavorite ? "В избранном" : "Добавить в избранное"}
+                      >
+                        {isFavorite ? (
+                          <svg className="w-4.5 h-4.5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.173c.969 0 1.371 1.24.588 1.81l-3.376 2.454a1 1 0 00-.364 1.118l1.286 3.967c.3.921-.755 1.688-1.539 1.118l-3.376-2.454a1 1 0 00-1.176 0l-3.376 2.454c-.784.57-1.838-.197-1.539-1.118l1.286-3.967a1 1 0 00-.364-1.118L2.04 9.394c-.784-.57-.38-1.81.588-1.81h4.173a1 1 0 00.95-.69l1.286-3.967z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4.5 h-4.5 text-white/70" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.173c.969 0 1.371 1.24.588 1.81l-3.376 2.454a1 1 0 00-.364 1.118l1.286 3.967c.3.921-.755 1.688-1.539 1.118l-3.376-2.454a1 1 0 00-1.176 0l-3.376 2.454c-.784.57-1.838-.197-1.539-1.118l1.286-3.967a1 1 0 00-.364-1.118L2.04 9.394c-.784-.57-.38-1.81.588-1.81h4.173a1 1 0 00.95-.69l1.286-3.967z" opacity="0.55" />
+                          </svg>
+                        )}
+                      </button>
+                    )}
+
+                    {/* Favorite badge */}
+                    {!isInDev && isFavorite && (
+                      <div className="absolute top-3 left-3 z-20 rounded-full border border-white/15 bg-black/20 px-3 py-1 text-xs text-white/80 backdrop-blur-sm">
+                        Избранная
+                      </div>
+                    )}
 
                     {/* Hover effect overlay */}
                     <div

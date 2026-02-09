@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
-import { CircularCountdown } from "../components/CircularCountdown";
 
 type LilyPad = {
   id: number;
@@ -12,7 +11,7 @@ type LilyPad = {
   clicked: boolean;
 };
 
-const GAME_DURATION_SECONDS = 60;
+const TOTAL_GAMES_PER_SESSION = 4;
 const PAD_MIN_DISTANCE = 16; // in "percent points" of the container (roughly prevents overlap)
 
 function dist(a: { x: number; y: number }, b: { x: number; y: number }) {
@@ -59,10 +58,10 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
   const [userPath, setUserPath] = useState<Array<number>>([]);
   const [frogPosition, setFrogPosition] = useState<number>(-1);
   const [score, setScore] = useState<number>(0);
-  const [timeLeft, setTimeLeft] = useState<number>(GAME_DURATION_SECONDS);
   const [numJumps, setNumJumps] = useState<number>(3);
   const [submittingResult, setSubmittingResult] = useState<boolean>(false);
   const [wrongPadId, setWrongPadId] = useState<number | null>(null);
+  const [gameNumber, setGameNumber] = useState<number>(1); // 1..TOTAL_GAMES_PER_SESSION
 
   const clickOrderByPadId = useMemo(() => {
     const m = new Map<number, number>();
@@ -70,19 +69,20 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
     return m;
   }, [userPath]);
 
-  useEffect(() => {
-    if (gameState !== "showing" && gameState !== "playing") return;
-    if (timeLeft <= 0) return;
-    const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
-    return () => clearInterval(timer);
-  }, [gameState, timeLeft]);
-
-  useEffect(() => {
-    if (gameState === "playing" && timeLeft === 0) {
-      void endGame();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState, timeLeft]);
+  const goToNextGameOrFinish = () => {
+    setWrongPadId(null);
+    setUserPath([]);
+    setGameNumber((prev) => {
+      const next = prev + 1;
+      if (next > TOTAL_GAMES_PER_SESSION) {
+        void endGame();
+        return prev;
+      }
+      // Start next "game"
+      generateLilyPads(numJumps);
+      return next;
+    });
+  };
 
   const generateLilyPads = (jumps: number) => {
     const pads: Array<LilyPad> = [];
@@ -129,16 +129,10 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
 
   const startGame = () => {
     setScore(0);
-    setTimeLeft(GAME_DURATION_SECONDS);
+    setGameNumber(1);
     const jumps = Math.min(3 + level, 10);
     setNumJumps(jumps);
     generateLilyPads(jumps);
-  };
-
-  const goToNextSequence = () => {
-    setWrongPadId(null);
-    setUserPath([]);
-    generateLilyPads(numJumps);
   };
 
   const handleLilyPadClick = (id: number) => {
@@ -159,7 +153,7 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
       setWrongPadId(id);
 
       setTimeout(() => {
-        goToNextSequence();
+        goToNextGameOrFinish();
       }, 900);
       return;
     }
@@ -168,7 +162,7 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
     if (newUserPath.length === path.length) {
       toast.success("Отлично! Путь пройден");
       setTimeout(() => {
-        generateLilyPads(numJumps);
+        goToNextGameOrFinish();
       }, 900);
     }
   };
@@ -264,9 +258,9 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
                 Счёт: <span className="text-white font-bold">{score}</span>
               </div>
               <div className="text-lg font-semibold">
-                <span className="mr-2">Время:</span>
-                <span className="inline-flex align-middle">
-                  <CircularCountdown totalSeconds={GAME_DURATION_SECONDS} secondsLeft={timeLeft} size={40} />
+                Игра:{" "}
+                <span className="text-white font-bold">
+                  {gameNumber}/{TOTAL_GAMES_PER_SESSION}
                 </span>
               </div>
               <div className="text-lg font-semibold">

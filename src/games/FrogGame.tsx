@@ -116,9 +116,6 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
     setGameState("showing");
     for (let i = 0; i < pathToShow.length; i++) {
       setFrogPosition(pathToShow[i]);
-      setLilyPads((prev) =>
-        prev.map((p) => (p.id === pathToShow[i] ? { ...p, visited: true } : p)),
-      );
       // eslint-disable-next-line no-await-in-loop
       await new Promise((resolve) => setTimeout(resolve, 750));
     }
@@ -280,7 +277,7 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
                       ? "bg-rose-500/80 ring-4 ring-rose-200/80"
                       : pad.clicked
                         ? "bg-emerald-300/80 ring-4 ring-white/40"
-                        : pad.visited
+                        : gameState === "showing" && frogPosition === pad.id
                           ? "bg-cyan-200/80 ring-4 ring-white/60"
                           : "bg-emerald-400/55 hover:bg-emerald-300/65",
                     gameState === "playing" ? "cursor-pointer hover:scale-110" : "cursor-default",

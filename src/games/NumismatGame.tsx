@@ -134,7 +134,7 @@ export function NumismatGame({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6 md:p-8">
+      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-4 md:p-5">
         {gameState === "idle" && (
           <div className="text-center">
             <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">

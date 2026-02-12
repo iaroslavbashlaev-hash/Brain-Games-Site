@@ -1,6 +1,5 @@
 import { convexAuth, getAuthUserId } from "@convex-dev/auth/server";
 import { Password } from "@convex-dev/auth/providers/Password";
-import { Anonymous } from "@convex-dev/auth/providers/Anonymous";
 import { query } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -17,7 +16,6 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         return profile;
       },
     }),
-    Anonymous,
   ],
 });
 

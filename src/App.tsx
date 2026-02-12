@@ -3,10 +3,22 @@ import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../convex/_generated/api";
 import { SignInForm } from "./SignInForm";
+import { VerifyEmailForm } from "./VerifyEmailForm";
 import { Toaster, toast } from "sonner";
 import { NumismatGame } from "./games/NumismatGame";
 import { FrogGame } from "./games/FrogGame";
 import { FirefliesGame } from "./games/FirefliesGame";
+import { SudokuGame } from "./games/SudokuGame";
+import { LogicSequenceGame } from "./games/LogicSequenceGame";
+import { MemoryCardsGame } from "./games/MemoryCardsGame";
+import { NumberMemoryGame } from "./games/NumberMemoryGame";
+import { ColorWordGame } from "./games/ColorWordGame";
+import { FindDifferenceGame } from "./games/FindDifferenceGame";
+import { MathPuzzleGame } from "./games/MathPuzzleGame";
+import { PatternRecognitionGame } from "./games/PatternRecognitionGame";
+import { ReactionTimeGame } from "./games/ReactionTimeGame";
+import { ClickSpeedGame } from "./games/ClickSpeedGame";
+import { SpatialReasoningGame } from "./games/SpatialReasoningGame";
 
 // Генерируем хаотичные позиции частиц один раз
 const generateParticles = (count: number) => {
@@ -32,7 +44,25 @@ export default function App() {
   const [isInGamesSection, setIsInGamesSection] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(true);
   const headerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [activeGame, setActiveGame] = useState<null | "numismat" | "frog" | "fireflies">(null);
+  const gameComponents = {
+    numismat: NumismatGame,
+    frog: FrogGame,
+    fireflies: FirefliesGame,
+    sudoku: SudokuGame,
+    "logic-sequence": LogicSequenceGame,
+    "memory-cards": MemoryCardsGame,
+    "number-memory": NumberMemoryGame,
+    "color-word": ColorWordGame,
+    "find-difference": FindDifferenceGame,
+    "math-puzzle": MathPuzzleGame,
+    "pattern-recognition": PatternRecognitionGame,
+    "reaction-time": ReactionTimeGame,
+    "click-speed": ClickSpeedGame,
+    "spatial-reasoning": SpatialReasoningGame,
+  } as const;
+
+  type ActiveGameId = keyof typeof gameComponents;
+  const [activeGame, setActiveGame] = useState<null | ActiveGameId>(null);
   const [favoriteGameIds, setFavoriteGameIds] = useState<Array<string>>(() => {
     try {
       const raw = localStorage.getItem("favorite_games");
@@ -44,8 +74,24 @@ export default function App() {
   });
   
   // Авторизация
-  const { signOut, signIn } = useAuthActions();
+  const { signOut } = useAuthActions();
   const user = useQuery(api.auth.loggedInUser);
+  const mustVerifyEmail = !!user && !!user.email && !user.emailVerificationTime;
+  const accessBlocked = mustVerifyEmail;
+
+  // Гостевой вход отключён: если вдруг осталась старая гостевая сессия — выходим сразу
+  useEffect(() => {
+    if (user && !user.email) {
+      toast.message("Гостевой вход отключён. Войдите в аккаунт.");
+      void signOut();
+      setShowAuthModal(true);
+    }
+  }, [user, signOut]);
+
+// если вдруг игра уже открыта — закрываем
+useEffect(() => {
+  if (accessBlocked && activeGame) setActiveGame(null);
+}, [accessBlocked, activeGame]);
   
   // Отслеживаем момент входа в аккаунт
   useEffect(() => {
@@ -116,7 +162,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
   
-  // Горячие клавиши: Ctrl+1 - выход, Ctrl+2 - гостевой режим
+  // Горячие клавиши: Ctrl+1 - выход
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.key === '1') {
@@ -125,17 +171,11 @@ export default function App() {
           void signOut();
         }
       }
-      if (e.ctrlKey && e.key === '2') {
-        e.preventDefault();
-        if (!user) {
-          void signIn("anonymous");
-        }
-      }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [user, signOut, signIn]);
+  }, [user, signOut]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -200,21 +240,24 @@ export default function App() {
   const gameIcons = [
     { id: "numismat", name: "Нумизмат", icon: "🪙", color: "bg-amber-500" },
     { id: "frog", name: "Лягушка", icon: "🐸", color: "bg-green-500" },
-    // Пазл отправлен в "В разработке"
     { id: "fireflies", name: "Светлячки", icon: "🪲", color: "bg-yellow-400" },
-    { id: "puzzle", name: "", icon: "", color: "bg-green-500", status: "dev" as const },
-    { id: "dev-1", name: "", icon: "", color: "bg-yellow-500", status: "dev" as const },
-    { id: "dev-2", name: "", icon: "", color: "bg-orange-500", status: "dev" as const },
-    { id: "dev-3", name: "", icon: "", color: "bg-teal-500", status: "dev" as const },
-    { id: "dev-4", name: "", icon: "", color: "bg-indigo-500", status: "dev" as const },
-    { id: "dev-5", name: "", icon: "", color: "bg-gray-800", status: "dev" as const },
-    { id: "dev-6", name: "", icon: "", color: "bg-pink-500", status: "dev" as const },
-    { id: "dev-7", name: "", icon: "", color: "bg-red-600", status: "dev" as const },
-    { id: "dev-8", name: "", icon: "", color: "bg-cyan-500", status: "dev" as const },
-    { id: "dev-9", name: "", icon: "", color: "bg-amber-500", status: "dev" as const },
-    { id: "dev-10", name: "", icon: "", color: "bg-lime-500", status: "dev" as const },
-    { id: "dev-11", name: "", icon: "", color: "bg-violet-500", status: "dev" as const },
-    { id: "dev-12", name: "", icon: "", color: "bg-emerald-500", status: "dev" as const },
+
+    // Импортированные игры (без разделов/типов)
+    { id: "sudoku", name: "Судоку", icon: "🔢", color: "bg-blue-500" },
+    { id: "logic-sequence", name: "Логические последовательности", icon: "🔗", color: "bg-blue-600" },
+    { id: "memory-cards", name: "Карточки памяти", icon: "🃏", color: "bg-green-500" },
+    { id: "number-memory", name: "Запомни числа", icon: "🧠", color: "bg-green-600" },
+    { id: "color-word", name: "Цвет и слово", icon: "🎨", color: "bg-yellow-500" },
+    { id: "find-difference", name: "Найди отличия", icon: "👁️", color: "bg-yellow-600" },
+    { id: "math-puzzle", name: "Математические головоломки", icon: "➕", color: "bg-purple-500" },
+    { id: "pattern-recognition", name: "Распознавание паттернов", icon: "🔷", color: "bg-purple-600" },
+    { id: "reaction-time", name: "Время реакции", icon: "⚡", color: "bg-red-500" },
+    { id: "click-speed", name: "Скорость кликов", icon: "🎯", color: "bg-red-600" },
+    { id: "spatial-reasoning", name: "Пространственное мышление", icon: "🔄", color: "bg-indigo-600" },
+
+    // Оставляем пару слотов под будущие игры
+    { id: "dev-1", name: "", icon: "", color: "bg-teal-500", status: "dev" as const },
+    { id: "dev-2", name: "", icon: "", color: "bg-emerald-500", status: "dev" as const },
   ];
 
   const gameList = useMemo(() => {
@@ -487,19 +530,15 @@ export default function App() {
           
           <div>
             {/* Игры */}
-            <div className={`grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 blur-transition ${!user && !unlockAnimation ? 'blur-md pointer-events-none select-none' : ''}`}>
+            <div className={`grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 blur-transition ${(!user || accessBlocked) && !unlockAnimation ? 'blur-md pointer-events-none select-none' : ''}`}>
               {gameList.map((game: any, index) => {
                 const isInDev = game.status === "dev" || !game.icon || game.icon.trim() === "";
                 const isFavorite = favoriteGameIds.includes(game.id);
                 const title = isInDev ? (game.name ? game.name : "В разработке") : game.name;
-                const playableGameId: null | "numismat" | "frog" | "fireflies" =
-                  game.id === "numismat"
-                    ? "numismat"
-                    : game.id === "frog"
-                      ? "frog"
-                      : game.id === "fireflies"
-                        ? "fireflies"
-                        : null;
+                const playableGameId: null | ActiveGameId =
+                  game && typeof game.id === "string" && game.id in gameComponents
+                    ? (game.id as ActiveGameId)
+                    : null;
 
                 return (
                   <div
@@ -508,6 +547,11 @@ export default function App() {
                     onClick={() => {
                       if (isInDev) return;
                       if (!user) return;
+                      if (accessBlocked) {
+                        toast.error("Подтверди почту, чтобы играть и получать очки");
+                        setShowAuthModal(true);
+                        return;
+                      }
                       if (playableGameId) {
                         setActiveGame(playableGameId);
                       } else {
@@ -647,6 +691,44 @@ export default function App() {
             </p>
           </div>
         )}
+
+        {/* Оверлей для пользователей без подтверждённой почты */}
+        {user && mustVerifyEmail && !unlockAnimation && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-20 px-6 text-center">
+            <div className="w-20 h-20 rounded-full bg-slate-800/80 border-2 border-white/20 flex items-center justify-center mb-6">
+              <svg className="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3Zm0 0c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z" />
+              </svg>
+            </div>
+
+            <h3 className="text-2xl md:text-3xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
+              Подтверди почту
+            </h3>
+            <p className="text-gray-300 max-w-xl">
+              Мы отправили код/ссылку на{" "}
+              <span className="text-white font-medium">{user.email}</span>. Подтверди почту, чтобы открыть игры и получать очки.
+            </p>
+
+            <div className="mt-6 flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="px-8 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-500 text-white font-semibold hover:from-cyan-400 hover:to-purple-400 transition-all shadow-lg hover:shadow-cyan-500/25"
+              >
+                Ввести код подтверждения
+              </button>
+              <button
+                onClick={() => void signOut()}
+                className="px-8 py-3 rounded-xl bg-white/5 border border-white/20 text-white/90 font-semibold hover:bg-white/10 hover:border-white/30 transition-all"
+              >
+                Выйти
+              </button>
+            </div>
+
+            <p className="mt-4 text-xs text-white/60">
+              Если письма нет — проверь “Спам” или попробуй отправить код ещё раз в форме входа.
+            </p>
+          </div>
+        )}
         
         {/* Анимация открытия замка */}
         {unlockAnimation && (
@@ -712,7 +794,6 @@ export default function App() {
       {showAuthModal && (
         <div 
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
-          onClick={() => setShowAuthModal(false)}
         >
           <div 
             className="bg-slate-900 border border-white/20 rounded-2xl p-8 w-full max-w-md mx-4 relative"
@@ -726,19 +807,23 @@ export default function App() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <SignInForm onClose={() => setShowAuthModal(false)} />
+            {mustVerifyEmail ? (
+              <VerifyEmailForm onClose={() => setShowAuthModal(false)} />
+            ) : (
+              <SignInForm onClose={() => setShowAuthModal(false)} />
+            )}
           </div>
         </div>
       )}
 
       {/* Game Modal */}
-      {activeGame && (
+      {activeGame && !accessBlocked && (
         <div
           className="fixed inset-0 z-[95] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
           onClick={() => setActiveGame(null)}
         >
           <div
-            className="relative w-full max-w-5xl max-h-[90vh] overflow-auto rounded-2xl border border-white/20 bg-slate-900/80 p-5 md:p-7"
+            className="relative w-full max-w-5xl max-h-[92vh] overflow-hidden rounded-2xl border border-white/20 bg-slate-900/80 p-3 pt-12 md:p-5 md:pt-12"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -751,9 +836,11 @@ export default function App() {
               </svg>
             </button>
 
-            {activeGame === "numismat" && <NumismatGame onBack={() => setActiveGame(null)} />}
-            {activeGame === "frog" && <FrogGame onBack={() => setActiveGame(null)} />}
-            {activeGame === "fireflies" && <FirefliesGame onBack={() => setActiveGame(null)} />}
+            {(() => {
+              if (!activeGame) return null;
+              const Active = gameComponents[activeGame];
+              return <Active onBack={() => setActiveGame(null)} />;
+            })()}
           </div>
         </div>
       )}

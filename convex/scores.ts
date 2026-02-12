@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import type { Id } from "./_generated/dataModel";
 
 // Множители очков по сложности
 const DIFFICULTY_MULTIPLIERS = {
@@ -98,6 +99,7 @@ export const addPoints = mutation({
     level: v.number(),
     difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
     won: v.boolean(),
+    pointsOverride: v.optional(v.number()),
   },
   returns: v.object({
     pointsEarned: v.number(),
@@ -107,6 +109,12 @@ export const addPoints = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) {
       throw new Error("Необходимо войти в аккаунт");
+    }
+
+    // Запрет начисления очков до подтверждения email
+    const user = await ctx.db.get(userId as Id<"users">);
+    if (!user?.emailVerificationTime) {
+      throw new Error("Подтверди почту, чтобы получать очки");
     }
 
     // Загружаем общий счёт
@@ -130,7 +138,10 @@ export const addPoints = mutation({
     // Рассчитываем "кандидат" очков
     const multiplier = DIFFICULTY_MULTIPLIERS[args.difficulty];
     const levelBonus = args.level * 1;
-    const candidatePoints = (BASE_POINTS_PER_LEVEL + levelBonus) * multiplier;
+    const candidatePoints =
+      typeof args.pointsOverride === "number"
+        ? Math.max(0, Math.floor(args.pointsOverride))
+        : (BASE_POINTS_PER_LEVEL + levelBonus) * multiplier;
 
     // Начисляем очки только если:
     // - уровень выигран

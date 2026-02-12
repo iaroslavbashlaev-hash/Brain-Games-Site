@@ -9,6 +9,8 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as emailVerification from "../emailVerification.js";
+import type * as emailVerificationActions from "../emailVerificationActions.js";
 import type * as http from "../http.js";
 import type * as router from "../router.js";
 import type * as scores from "../scores.js";
@@ -21,6 +23,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  emailVerification: typeof emailVerification;
+  emailVerificationActions: typeof emailVerificationActions;
   http: typeof http;
   router: typeof router;
   scores: typeof scores;

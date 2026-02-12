@@ -83,10 +83,10 @@ function isValidEmail(email: string): boolean {
 
 // Валидация пароля
 function validatePassword(password: string): string | null {
-  if (password.length < 6) {
-    return "Пароль должен содержать минимум 6 символов";
+  if (password.length < 8) {
+    return "Пароль должен содержать минимум 8 символов";
   }
-  if (password.length > 100) {
+  if (password.length > 35) {
     return "Пароль слишком длинный";
   }
   return null;
@@ -96,12 +96,16 @@ export function SignInForm({ onClose }: { onClose?: () => void }) {
   const { signIn } = useAuthActions();
   const [flow, setFlow] = useState<"signIn" | "signUp">("signIn");
   const [submitting, setSubmitting] = useState(false);
-  const [anonymousSubmitting, setAnonymousSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
+
+  const isSignUp = flow === "signUp";
+  const passwordsMatch = !isSignUp || (password.length > 0 && confirmPassword.length > 0 && password === confirmPassword);
 
   const validateForm = (): boolean => {
     let isValid = true;
@@ -121,7 +125,7 @@ export function SignInForm({ onClose }: { onClose?: () => void }) {
     if (!password) {
       setPasswordError("Введите пароль");
       isValid = false;
-    } else if (flow === "signUp") {
+    } else if (isSignUp) {
       const passError = validatePassword(password);
       if (passError) {
         setPasswordError(passError);
@@ -131,6 +135,21 @@ export function SignInForm({ onClose }: { onClose?: () => void }) {
       }
     } else {
       setPasswordError(null);
+    }
+
+    // Валидация повтора пароля (только при регистрации)
+    if (isSignUp) {
+      if (!confirmPassword) {
+        setConfirmPasswordError("Повторите пароль");
+        isValid = false;
+      } else if (password !== confirmPassword) {
+        setConfirmPasswordError("Пароли не совпадают");
+        isValid = false;
+      } else {
+        setConfirmPasswordError(null);
+      }
+    } else {
+      setConfirmPasswordError(null);
     }
     
     return isValid;
@@ -173,19 +192,6 @@ export function SignInForm({ onClose }: { onClose?: () => void }) {
     }
   };
 
-  const handleAnonymousSignIn = async () => {
-    setAnonymousSubmitting(true);
-    try {
-      await signIn("anonymous");
-      toast.success("Вошли как гость 👋");
-      onClose?.();
-    } catch (error) {
-      toast.error("Не удалось войти как гость. Попробуйте позже.");
-      console.error("Anonymous auth error:", error);
-    } finally {
-      setAnonymousSubmitting(false);
-    }
-  };
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -235,6 +241,7 @@ export function SignInForm({ onClose }: { onClose?: () => void }) {
               onChange={(e) => {
                 setPassword(e.target.value);
                 if (passwordError) setPasswordError(null);
+                if (confirmPasswordError) setConfirmPasswordError(null);
               }}
               disabled={submitting}
             />
@@ -266,15 +273,48 @@ export function SignInForm({ onClose }: { onClose?: () => void }) {
           )}
           {flow === "signUp" && !passwordError && (
             <p className="mt-1 text-xs text-gray-500">
-              Минимум 6 символов
+              Минимум 8 символов
             </p>
           )}
         </div>
+
+        {isSignUp && (
+          <div>
+            <input
+              className={`w-full px-4 py-3 rounded-xl bg-white/10 border text-white placeholder-gray-400 focus:outline-none transition-colors ${
+                confirmPasswordError
+                  ? "border-red-500 focus:border-red-400"
+                  : "border-white/20 focus:border-cyan-400"
+              }`}
+              type={showPassword ? "text" : "password"}
+              name="confirmPassword"
+              placeholder="Повторите пароль"
+              value={confirmPassword}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                if (confirmPasswordError) setConfirmPasswordError(null);
+              }}
+              disabled={submitting}
+            />
+            {confirmPasswordError && (
+              <p className="mt-1 text-sm text-red-400 flex items-center gap-1">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                {confirmPasswordError}
+              </p>
+            )}
+          </div>
+        )}
         
         <button 
           className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-500 text-white font-semibold hover:from-cyan-400 hover:to-purple-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           type="submit" 
-          disabled={submitting}
+          disabled={submitting || !passwordsMatch}
         >
           {submitting ? (
             <>
@@ -302,6 +342,8 @@ export function SignInForm({ onClose }: { onClose?: () => void }) {
               setFlow(flow === "signIn" ? "signUp" : "signIn");
               setEmailError(null);
               setPasswordError(null);
+              setConfirmPasswordError(null);
+              setConfirmPassword("");
             }}
             disabled={submitting}
           >
@@ -310,33 +352,6 @@ export function SignInForm({ onClose }: { onClose?: () => void }) {
         </div>
       </form>
       
-      <div className="flex items-center justify-center my-4">
-        <hr className="grow border-white/20" />
-        <span className="mx-4 text-gray-500 text-sm">или</span>
-        <hr className="grow border-white/20" />
-      </div>
-      
-      <button 
-        className="w-full px-4 py-3 rounded-xl border border-white/20 bg-white/5 text-white font-medium hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        onClick={handleAnonymousSignIn}
-        disabled={anonymousSubmitting || submitting}
-      >
-        {anonymousSubmitting ? (
-          <>
-            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
-            Загрузка...
-          </>
-        ) : (
-          "Войти как гость"
-        )}
-      </button>
-      
-      <p className="mt-4 text-center text-xs text-gray-500">
-        Гостевой режим позволяет играть без регистрации. Прогресс сохранится до выхода из аккаунта.
-      </p>
     </div>
   );
 }

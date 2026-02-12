@@ -44,5 +44,12 @@ const applicationTables = {
 
 export default defineSchema({
   ...authTables,
+  emailVerificationCodes: defineTable({
+    userId: v.id("users"),
+    code: v.string(),
+    expiresAt: v.number(),
+    attempts: v.number(),
+    lastSentAt: v.number(),
+  }).index("by_userId", ["userId"]),
   ...applicationTables,
 });

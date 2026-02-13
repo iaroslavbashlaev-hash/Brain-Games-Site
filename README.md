@@ -17,6 +17,21 @@ The backend code is in the `convex` directory.
 
 Chef apps use [Convex Auth](https://auth.convex.dev/) with Anonymous auth for easy sign in. You may wish to change this before deploying your app.
 
+## Деплой на Vercel (подключение к dev-окружению Convex)
+
+Чтобы сайт на Vercel работал с **dev**-бэкендом Convex (а не с prod), используется команда `build:dev` в `vercel.json`. Иначе `convex deploy` из `build:production` деплоит в **production** Convex, и переменная с dev-окружением не используется.
+
+**В настройках проекта Vercel → Settings → Environment Variables задайте:**
+
+| Переменная | Значение |
+|------------|----------|
+| `CONVEX_DEPLOY_KEY` | Ключ **development** из Convex Dashboard (Deployment → Deploy keys → Create development key). Не используйте production-ключ. |
+| `VITE_CONVEX_URL` | URL вашего dev-деплоя, например `https://pastel-loris-290.convex.cloud` |
+
+Без `VITE_CONVEX_URL` сборка `build:dev` не подставит URL в фронтенд. Скрипт `build:dev` делает: `convex dev --once` (пушит бэкенд в dev) и затем `vite build` (читает `VITE_CONVEX_URL` из окружения).
+
+Если нужен деплой в **production** Convex (отдельный прод-сайт), в Vercel задайте production deploy key и смените в `vercel.json` команду на `npm run build:production`.
+
 ## Developing and deploying your app
 
 Check out the [Convex docs](https://docs.convex.dev/) for more information on how to develop with Convex.

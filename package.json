@@ -9,6 +9,7 @@
     "dev:backend": "convex dev",
     "build": "vite build",
     "build:production": "npx convex deploy --cmd 'vite build'",
+    "build:dev": "npx convex dev --once && vite build",
     "preview": "vite preview",
     "lint": "tsc -p convex -noEmit --pretty false && tsc -p . -noEmit --pretty false && convex dev --once && vite build"
   },

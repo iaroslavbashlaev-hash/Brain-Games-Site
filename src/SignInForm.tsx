@@ -60,6 +60,11 @@ function getErrorMessage(error: Error, flow: "signIn" | "signUp"): string {
     return "Слишком много попыток. Подождите несколько минут.";
   }
 
+  // Resend: тестовый режим — письма только на свой email
+  if (message.includes("resend") && (message.includes("403") || message.includes("testing emails") || message.includes("verify a domain"))) {
+    return "Сейчас письма отправляются только на email разработчика. Для продакшена настройте домен в Resend.";
+  }
+
   // Could not verify - общая ошибка верификации
   if (message.includes("could not verify") || message.includes("verification failed")) {
     return flow === "signIn" 

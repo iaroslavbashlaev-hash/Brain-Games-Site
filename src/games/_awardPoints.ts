@@ -25,10 +25,7 @@ export function useAwardPoints(gameId: string, opts?: { level?: number; difficul
         toast.message("Этот результат уже засчитан — очки не начислены");
       }
       return res;
-    } catch (e) {
-      toast.error("Не удалось сохранить результат");
-      // eslint-disable-next-line no-console
-      console.error(e);
+    } catch {
       return null;
     }
   };

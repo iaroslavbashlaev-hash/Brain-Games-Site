@@ -2,8 +2,6 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../convex/_generated/api";
-import { SignInForm } from "./SignInForm";
-import { VerifyEmailForm } from "./VerifyEmailForm";
 import { Toaster, toast } from "sonner";
 import { NumismatGame } from "./games/NumismatGame";
 import { FrogGame } from "./games/FrogGame";
@@ -35,7 +33,6 @@ const staticParticles = generateParticles(45);
 export default function App() {
   const [mousePosition, setMousePosition] = useState({ x: 0.5, y: 0.5 });
   const [isLoaded, setIsLoaded] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [unlockAnimation, setUnlockAnimation] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -76,22 +73,6 @@ export default function App() {
   // Авторизация
   const { signOut } = useAuthActions();
   const user = useQuery(api.auth.loggedInUser);
-  const mustVerifyEmail = !!user && !!user.email && !user.emailVerificationTime;
-  const accessBlocked = mustVerifyEmail;
-
-  // Гостевой вход отключён: если вдруг осталась старая гостевая сессия — выходим сразу
-  useEffect(() => {
-    if (user && !user.email) {
-      toast.message("Гостевой вход отключён. Войдите в аккаунт.");
-      void signOut();
-      setShowAuthModal(true);
-    }
-  }, [user, signOut]);
-
-// если вдруг игра уже открыта — закрываем
-useEffect(() => {
-  if (accessBlocked && activeGame) setActiveGame(null);
-}, [accessBlocked, activeGame]);
   
   // Отслеживаем момент входа в аккаунт
   useEffect(() => {
@@ -140,6 +121,7 @@ useEffect(() => {
   
   // Получаем очки пользователя из базы данных
   const userScore = useQuery(api.scores.getUserScore);
+  const allGameProgress = useQuery(api.scores.getAllGameProgress);
   
   // Определяем значок по очкам
   const getBadge = (points: number) => {
@@ -162,21 +144,6 @@ useEffect(() => {
     return () => clearTimeout(timer);
   }, []);
   
-  // Горячие клавиши: Ctrl+1 - выход
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === '1') {
-        e.preventDefault();
-        if (user) {
-          void signOut();
-        }
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [user, signOut]);
-
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ 
@@ -191,7 +158,7 @@ useEffect(() => {
 
   // Определяем находится ли пользователь в секции игр
   useEffect(() => {
-    const mainContainer = document.querySelector('.snap-y');
+    const mainContainer = document.querySelector('.overflow-y-auto');
     if (!mainContainer) return;
 
     const handleScroll = () => {
@@ -286,7 +253,7 @@ useEffect(() => {
   }, [favoriteGameIds]);
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white overflow-x-hidden overflow-y-auto snap-y snap-mandatory">
+    <div className="h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white overflow-x-hidden overflow-y-auto">
       {/* Зона активации шапки (всегда видна) */}
       <div 
         className="fixed top-0 left-0 right-0 h-3 z-50 bg-gradient-to-b from-cyan-500/30 to-transparent"
@@ -313,15 +280,25 @@ useEffect(() => {
           >
             <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">FS</span>
           </button>
-          <nav className="hidden md:flex space-x-8">
+          <nav className="flex flex-wrap justify-center gap-4 md:gap-8 text-sm md:text-base">
             <button 
               onClick={() => document.getElementById('games-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
               className="hover:text-cyan-400 transition-colors duration-300"
             >
-              Games
+              Игры
             </button>
-            <button className="hover:text-cyan-400 transition-colors duration-300">About</button>
-            <button className="hover:text-cyan-400 transition-colors duration-300">Contact</button>
+            <button
+              onClick={() => document.getElementById('about-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              className="hover:text-cyan-400 transition-colors duration-300"
+            >
+              О проекте
+            </button>
+            <button
+              onClick={() => document.getElementById('contact-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              className="hover:text-cyan-400 transition-colors duration-300"
+            >
+              Контакты
+            </button>
           </nav>
           <div className="flex items-center gap-3">
             {user ? (
@@ -448,28 +425,14 @@ useEffect(() => {
                 )}
               </div>
             ) : (
-              <button 
-                onClick={() => setShowAuthModal(true)}
-                className="h-10 px-4 rounded-full border border-white/20 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 backdrop-blur-sm flex items-center gap-2 hover:border-white/40 hover:from-cyan-500/30 hover:to-purple-500/30 transition-all duration-300 cursor-pointer"
-              >
-                <svg 
-                  className="w-5 h-5" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                </svg>
-                <span className="text-sm font-medium">Войти</span>
-              </button>
+              <div className="w-10 h-10" />
             )}
           </div>
         </div>
       </header>
 
       {/* Interactive Title Section */}
-      <section className="relative h-screen min-h-screen flex items-center justify-center px-6 py-20 snap-start snap-always">
+      <section className="relative h-screen min-h-screen flex items-center justify-center px-6 py-20">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-900/20 via-transparent to-cyan-900/20"></div>
         <div className="relative z-10 text-center" style={{ perspective: '1000px' }}>
           <h1 
@@ -522,15 +485,15 @@ useEffect(() => {
       </section>
 
       {/* Games Grid Section */}
-      <section id="games-section" className="relative min-h-screen py-20 px-6 snap-start snap-always flex flex-col justify-center">
-        <div className="container mx-auto max-w-6xl">
+      <section id="games-section" className="relative min-h-screen py-20 px-6 flex flex-col justify-center">
+        <div className="container mx-auto max-w-7xl">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
             Наши Игры
           </h2>
           
           <div>
             {/* Игры */}
-            <div className={`grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 blur-transition ${(!user || accessBlocked) && !unlockAnimation ? 'blur-md pointer-events-none select-none' : ''}`}>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-8 md:gap-10">
               {gameList.map((game: any, index) => {
                 const isInDev = game.status === "dev" || !game.icon || game.icon.trim() === "";
                 const isFavorite = favoriteGameIds.includes(game.id);
@@ -539,6 +502,21 @@ useEffect(() => {
                   game && typeof game.id === "string" && game.id in gameComponents
                     ? (game.id as ActiveGameId)
                     : null;
+                const isGuestLocked = false;
+                const guestOverlayTextColor = (() => {
+                  const c = String(game.color ?? "");
+                  if (c.includes("amber")) return "text-amber-200";
+                  if (c.includes("yellow")) return "text-yellow-100";
+                  if (c.includes("green")) return "text-emerald-200";
+                  if (c.includes("teal")) return "text-teal-200";
+                  if (c.includes("emerald")) return "text-emerald-200";
+                  if (c.includes("cyan")) return "text-cyan-200";
+                  if (c.includes("blue")) return "text-sky-200";
+                  if (c.includes("indigo")) return "text-indigo-200";
+                  if (c.includes("purple")) return "text-fuchsia-200";
+                  if (c.includes("red")) return "text-rose-200";
+                  return "text-white/80";
+                })();
 
                 return (
                   <div
@@ -546,12 +524,6 @@ useEffect(() => {
                     aria-disabled={isInDev}
                     onClick={() => {
                       if (isInDev) return;
-                      if (!user) return;
-                      if (accessBlocked) {
-                        toast.error("Подтверди почту, чтобы играть и получать очки");
-                        setShowAuthModal(true);
-                        return;
-                      }
                       if (playableGameId) {
                         setActiveGame(playableGameId);
                       } else {
@@ -568,99 +540,135 @@ useEffect(() => {
                       animationDelay: `${index * 0.1}s`,
                     }}
                   >
-                    {/* Background gradient */}
+                    {/* Blurred card content for guest-locked games (badge stays sharp) */}
                     <div
                       className={[
-                        "absolute inset-0 opacity-20 transition-opacity duration-300",
-                        game.color,
-                        isInDev ? "" : "group-hover:opacity-40",
+                        "relative h-full w-full",
+                        isGuestLocked ? "blur-[2px] opacity-75 pointer-events-none" : "",
                       ].join(" ")}
-                    />
+                      aria-hidden={isGuestLocked}
+                    >
+                      {/* Background gradient */}
+                      <div
+                        className={[
+                          "absolute inset-0 opacity-20 transition-opacity duration-300",
+                          game.color,
+                          isInDev ? "" : "group-hover:opacity-40",
+                        ].join(" ")}
+                      />
 
-                    {/* In-dev subtle pattern (site palette) */}
-                    {isInDev && (
-                      <>
-                        <div className="absolute -top-10 -left-10 h-32 w-32 rounded-full bg-cyan-400/15 blur-xl" />
-                        <div className="absolute -bottom-12 -right-10 h-40 w-40 rounded-full bg-purple-500/15 blur-xl" />
-                        <div className="absolute inset-0 opacity-50 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08)_0,rgba(255,255,255,0.08)_2px,transparent_2px)] [background-size:18px_18px]" />
-                      </>
-                    )}
+                      {/* In-dev subtle pattern (site palette) */}
+                      {isInDev && (
+                        <>
+                          <div className="absolute -top-10 -left-10 h-32 w-32 rounded-full bg-cyan-400/15 blur-xl" />
+                          <div className="absolute -bottom-12 -right-10 h-40 w-40 rounded-full bg-purple-500/15 blur-xl" />
+                          <div className="absolute inset-0 opacity-50 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08)_0,rgba(255,255,255,0.08)_2px,transparent_2px)] [background-size:18px_18px]" />
+                        </>
+                      )}
 
-                    {/* Content */}
-                    <div className="relative z-10 h-full flex flex-col items-center justify-center p-4 text-center">
+                      {/* Content */}
+                      <div className="relative z-10 h-full flex flex-col items-center justify-center p-5 md:p-6 text-center">
+                        {!isInDev && (
+                          <div className="text-5xl md:text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">
+                            {game.icon}
+                          </div>
+                        )}
+                        <h3
+                          className={[
+                            "font-semibold transition-colors duration-300",
+                            isInDev
+                              ? "text-xl md:text-2xl bg-gradient-to-r from-cyan-300 to-purple-400 bg-clip-text text-transparent"
+                              : "text-base md:text-lg text-white/90 group-hover:text-white",
+                          ].join(" ")}
+                        >
+                          {title}
+                        </h3>
+                        {isInDev && (
+                          <p className="mt-2 text-xs text-white/60">В разработке</p>
+                        )}
+                      </div>
+
+                      {/* Favorites star (only for non-dev games) */}
                       {!isInDev && (
-                        <div className="text-4xl md:text-5xl mb-3 group-hover:scale-110 transition-transform duration-300">
-                          {game.icon}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFavoriteGameIds((prev) => {
+                              const exists = prev.includes(game.id);
+                              if (exists) {
+                                return prev.filter((x) => x !== game.id);
+                              }
+                              if (prev.length >= 8) {
+                                toast.error("Максимум 8 игр в избранном");
+                                return prev;
+                              }
+                              toast.success("Игра добавлена в избранное");
+                              return [game.id, ...prev].slice(0, 8);
+                            });
+                          }}
+                          className="absolute top-3 right-3 z-30 w-9 h-9 rounded-full border border-white/15 bg-black/25 backdrop-blur-sm flex items-center justify-center hover:bg-black/35 hover:border-white/25 transition-colors"
+                          aria-label={isFavorite ? "Убрать из избранного" : "Добавить в избранное"}
+                          title={isFavorite ? "В избранном" : "Добавить в избранное"}
+                        >
+                          {isFavorite ? (
+                            <svg className="w-4.5 h-4.5" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.173c.969 0 1.371 1.24.588 1.81l-3.376 2.454a1 1 0 00-.364 1.118l1.286 3.967c.3.921-.755 1.688-1.539 1.118l-3.376-2.454a1 1 0 00-1.176 0l-3.376 2.454c-.784.57-1.838-.197-1.539-1.118l1.286-3.967a1 1 0 00-.364-1.118L2.04 9.394c-.784-.57-.38-1.81.588-1.81h4.173a1 1 0 00.95-.69l1.286-3.967z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4.5 h-4.5 text-white/70" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.173c.969 0 1.371 1.24.588 1.81l-3.376 2.454a1 1 0 00-.364 1.118l1.286 3.967c.3.921-.755 1.688-1.539 1.118l-3.376-2.454a1 1 0 00-1.176 0l-3.376 2.454c-.784.57-1.838-.197-1.539-1.118l1.286-3.967a1 1 0 00-.364-1.118L2.04 9.394c-.784-.57-.38-1.81.588-1.81h4.173a1 1 0 00.95-.69l1.286-3.967z" opacity="0.55" />
+                            </svg>
+                          )}
+                        </button>
+                      )}
+
+                      {/* Level + streak badge (top-left) */}
+                      {!isInDev && playableGameId && (
+                        <div className="absolute top-3 left-3 z-20 rounded-lg border border-white/15 bg-black/20 px-3 py-1.5 text-xs text-white/80 backdrop-blur-sm flex items-center gap-1.5 flex-wrap max-w-[90%]">
+                          <span>Уровень: {allGameProgress?.[game.id]?.level ?? 1}</span>
+                          <span className="text-amber-400 animate-fire inline-block" title="Серия побед">
+                            🔥
+                          </span>
+                          <span>серия побед подряд: {allGameProgress?.[game.id]?.winStreak ?? 0}</span>
                         </div>
                       )}
-                      <h3
+
+                      {/* Favorite badge */}
+                      {!isInDev && isFavorite && (
+                        <div className="absolute top-12 left-3 z-20 rounded-full border border-white/15 bg-black/20 px-3 py-1 text-xs text-white/80 backdrop-blur-sm">
+                          Избранная
+                        </div>
+                      )}
+
+                      {/* Hover effect overlay */}
+                      <div
                         className={[
-                          "font-semibold transition-colors duration-300",
-                          isInDev
-                            ? "text-xl md:text-2xl bg-gradient-to-r from-cyan-300 to-purple-400 bg-clip-text text-transparent"
-                            : "text-sm md:text-base text-white/90 group-hover:text-white",
+                          "absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent transition-opacity duration-300",
+                          isInDev ? "opacity-70" : "opacity-0 group-hover:opacity-100",
                         ].join(" ")}
-                      >
-                        {title}
-                      </h3>
-                      {isInDev && (
-                        <p className="mt-2 text-xs text-white/60">В разработке</p>
+                      />
+
+                      {/* Shine effect */}
+                      {!isInDev && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
                       )}
                     </div>
 
-                    {/* Favorites star (only for non-dev games) */}
-                    {!isInDev && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setFavoriteGameIds((prev) => {
-                            const exists = prev.includes(game.id);
-                            if (exists) {
-                              return prev.filter((x) => x !== game.id);
-                            }
-                            if (prev.length >= 8) {
-                              toast.error("Максимум 8 игр в избранном");
-                              return prev;
-                            }
-                            toast.success("Игра добавлена в избранное");
-                            return [game.id, ...prev].slice(0, 8);
-                          });
-                        }}
-                        className="absolute top-3 right-3 z-30 w-9 h-9 rounded-full border border-white/15 bg-black/25 backdrop-blur-sm flex items-center justify-center hover:bg-black/35 hover:border-white/25 transition-colors"
-                        aria-label={isFavorite ? "Убрать из избранного" : "Добавить в избранное"}
-                        title={isFavorite ? "В избранном" : "Добавить в избранное"}
-                      >
-                        {isFavorite ? (
-                          <svg className="w-4.5 h-4.5" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.173c.969 0 1.371 1.24.588 1.81l-3.376 2.454a1 1 0 00-.364 1.118l1.286 3.967c.3.921-.755 1.688-1.539 1.118l-3.376-2.454a1 1 0 00-1.176 0l-3.376 2.454c-.784.57-1.838-.197-1.539-1.118l1.286-3.967a1 1 0 00-.364-1.118L2.04 9.394c-.784-.57-.38-1.81.588-1.81h4.173a1 1 0 00.95-.69l1.286-3.967z" />
-                          </svg>
-                        ) : (
-                          <svg className="w-4.5 h-4.5 text-white/70" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.173c.969 0 1.371 1.24.588 1.81l-3.376 2.454a1 1 0 00-.364 1.118l1.286 3.967c.3.921-.755 1.688-1.539 1.118l-3.376-2.454a1 1 0 00-1.176 0l-3.376 2.454c-.784.57-1.838-.197-1.539-1.118l1.286-3.967a1 1 0 00-.364-1.118L2.04 9.394c-.784-.57-.38-1.81.588-1.81h4.173a1 1 0 00.95-.69l1.286-3.967z" opacity="0.55" />
-                          </svg>
-                        )}
-                      </button>
-                    )}
-
-                    {/* Favorite badge */}
-                    {!isInDev && isFavorite && (
-                      <div className="absolute top-3 left-3 z-20 rounded-full border border-white/15 bg-black/20 px-3 py-1 text-xs text-white/80 backdrop-blur-sm">
-                        Избранная
+                    {/* Guest mode overlay for locked games (not blurred) */}
+                    {isGuestLocked && (
+                      <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                        <div
+                          className={[
+                            "h-40 w-40 md:h-44 md:w-44 rounded-full bg-black/65 border border-white/30 backdrop-blur-sm",
+                            "flex items-center justify-center text-center px-5 text-base md:text-lg font-semibold leading-snug",
+                            guestOverlayTextColor,
+                            "drop-shadow-md",
+                          ].join(" ")}
+                        >
+                          В гостевом режиме недоступна
+                        </div>
                       </div>
-                    )}
-
-                    {/* Hover effect overlay */}
-                    <div
-                      className={[
-                        "absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent transition-opacity duration-300",
-                        isInDev ? "opacity-70" : "opacity-0 group-hover:opacity-100",
-                      ].join(" ")}
-                    />
-
-                    {/* Shine effect */}
-                    {!isInDev && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
                     )}
                   </div>
                 );
@@ -668,67 +676,6 @@ useEffect(() => {
             </div>
           </div>
         </div>
-        
-        {/* Оверлей с замком для неавторизованных */}
-        {!user && !unlockAnimation && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
-            {/* Замок */}
-            <div className="w-20 h-20 rounded-full bg-slate-800/80 border-2 border-white/20 flex items-center justify-center mb-6">
-              <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            
-            {/* Кнопка входа */}
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="px-8 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-500 text-white font-semibold hover:from-cyan-400 hover:to-purple-400 transition-all shadow-lg hover:shadow-cyan-500/25"
-            >
-              Регистрация или Вход
-            </button>
-            <p className="mt-3 text-gray-400 text-sm">
-              Войдите, чтобы играть и зарабатывать очки
-            </p>
-          </div>
-        )}
-
-        {/* Оверлей для пользователей без подтверждённой почты */}
-        {user && mustVerifyEmail && !unlockAnimation && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-20 px-6 text-center">
-            <div className="w-20 h-20 rounded-full bg-slate-800/80 border-2 border-white/20 flex items-center justify-center mb-6">
-              <svg className="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3Zm0 0c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z" />
-              </svg>
-            </div>
-
-            <h3 className="text-2xl md:text-3xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-              Подтверди почту
-            </h3>
-            <p className="text-gray-300 max-w-xl">
-              Мы отправили код/ссылку на{" "}
-              <span className="text-white font-medium">{user.email}</span>. Подтверди почту, чтобы открыть игры и получать очки.
-            </p>
-
-            <div className="mt-6 flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="px-8 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-500 text-white font-semibold hover:from-cyan-400 hover:to-purple-400 transition-all shadow-lg hover:shadow-cyan-500/25"
-              >
-                Ввести код подтверждения
-              </button>
-              <button
-                onClick={() => void signOut()}
-                className="px-8 py-3 rounded-xl bg-white/5 border border-white/20 text-white/90 font-semibold hover:bg-white/10 hover:border-white/30 transition-all"
-              >
-                Выйти
-              </button>
-            </div>
-
-            <p className="mt-4 text-xs text-white/60">
-              Если письма нет — проверь “Спам” или попробуй отправить код ещё раз в форме входа.
-            </p>
-          </div>
-        )}
         
         {/* Анимация открытия замка */}
         {unlockAnimation && (
@@ -781,43 +728,114 @@ useEffect(() => {
         )}
       </section>
 
+      {/* About */}
+      <section id="about-section" className="relative py-24 px-6 border-t border-white/10">
+        <div className="absolute inset-0 bg-gradient-to-r from-cyan-900/10 via-transparent to-purple-900/10 pointer-events-none" />
+        <div className="container mx-auto max-w-4xl relative z-10 space-y-12">
+          <div className="text-center">
+            <p className="text-sm tracking-[0.25em] uppercase text-cyan-300/80 mb-3">Для тех, кто ведёт команды</p>
+            <h2 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
+              О проекте
+            </h2>
+            <p className="mt-4 text-gray-300 text-lg">
+              Короткая история о том, зачем появился этот сайт и почему им можно пользоваться свободно.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {[
+              { icon: "🎓", title: "Колледж", text: "Я преподавал. Часть ребят почти не трогала компьютер." },
+              { icon: "🧠", title: "Игры", text: "Сделал простые тренировки, чтобы страх перед экраном ушёл через игру." },
+              { icon: "📄", title: "Word и PowerPoint", text: "Через 3–5 дней подготовки дети уже работали в офисных программах." },
+            ].map((card) => (
+              <div
+                key={card.title}
+                className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center hover:border-white/25 hover:bg-white/[0.07] transition-all"
+              >
+                <div className="text-4xl mb-3">{card.icon}</div>
+                <h3 className="text-xl font-semibold text-white mb-2">{card.title}</h3>
+                <p className="text-gray-400 text-sm leading-relaxed">{card.text}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-slate-900/50 p-8 md:p-10 space-y-5 text-gray-200 leading-8">
+            <h3 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+              Сначала про человека
+            </h3>
+            <p>
+              Меня зовут в сети FanaTick. Я не «великий гений кода». Я человек, которому было жалко смотреть, как умные дети теряются перед простой кнопкой «Пуск». Когда преподавал в колледже, часть студентов почти не пользовалась компьютером. Им было тяжело не потому, что они глупые. Им было тяжело, потому что всё вокруг казалось чужим.
+            </p>
+            <p>
+              Тогда я собрал этот проект — с помощью нейросети, своими руками, своим характером. Не идеальный. Более-менее нормальный. Зато живой. Детишки заходили, играли, улыбались. Потом интерес падал. Это нормально. Игра сама по себе не учит жизни. Нужна мотивация рядом: «ты сможешь», «ещё одну минуту», «смотри, уже получается».
+            </p>
+            <p>
+              Когда рядом был тёплый тон и понятная цель, родители были довольны. А ребята через три-пять дней подготовки уже открывали Word и PowerPoint и делали простые вещи сами. Для меня это и есть победа. Не красивый код. Человек, который перестал бояться компьютера.
+            </p>
+            <p>
+              Если вы тимлид, преподаватель или просто взрослый, который хочет дать людям мягкий вход в цифровые навыки — берите сайт. Используйте в своих целях. Без проблем. Я отдаю его в свободный доступ. Пусть помогает ещё кому-то.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-cyan-400/20 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 p-8 text-center">
+            <div className="text-3xl mb-3">🤝</div>
+            <h3 className="text-2xl font-semibold mb-3">Свободный доступ</h3>
+            <p className="text-gray-200 leading-7 max-w-2xl mx-auto">
+              Играйте сами. Показывайте студентам. Ставьте в класс. Копируйте идеи. Не нужно спрашивать разрешение. Если проект кому-то облегчит первый шаг — я уже рад.
+            </p>
+          </div>
+
+          <div className="space-y-4 text-gray-300 leading-7">
+            <h3 className="text-xl font-semibold text-white">Если интересно, как это сделано</h3>
+            <p>
+              Это уже менее важная часть. Сайт собран на React и Vite, выглядит как тёмная «космическая» витрина FanatickStudio. Игры тренируют память, внимание, реакцию и логику: монеты, светлячки, лягушка, судоку, карточки, числа и другие короткие задания. Раньше вокруг них была регистрация; сейчас можно просто зайти и играть.
+            </p>
+            <p>
+              Для стиля использованы Tailwind и обычные веб-инструменты. Часть логики и текстов я собирал вместе с нейросетью. Главное не стек, а чтобы ребёнок не испугался первого клика.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Contacts */}
+      <section id="contact-section" className="relative py-20 px-6 border-t border-white/10">
+        <div className="container mx-auto max-w-3xl text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-8 bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
+            Контакты
+          </h2>
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-8 md:p-12 space-y-5">
+            <div className="w-16 h-16 mx-auto rounded-full border border-white/20 bg-gradient-to-br from-cyan-500/30 to-purple-500/30 flex items-center justify-center text-xl font-bold">
+              FT
+            </div>
+            <p className="text-2xl font-semibold text-white">FanaTick</p>
+            <p className="text-cyan-300 text-sm tracking-wide uppercase">псевдоним разработчика</p>
+            <p className="text-gray-300 leading-7">
+              Это не паспортное имя. Так меня знают в проектах. Если сайт вам пригодился — улыбнитесь и идите делать своё. Встретимся в новых проектах.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
-      <footer className="relative py-12 px-6 border-t border-white/10">
-        <div className="container mx-auto text-center">
-          <p className="text-gray-400">
-            © 2026 FanatickStudio. Все права защищены.
+      <footer className="relative py-10 px-6 border-t border-white/10 bg-black/20">
+        <div className="container mx-auto max-w-5xl flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+          <div>
+            <p className="text-white font-semibold">FanatickStudio</p>
+            <p className="text-gray-400 text-sm">Игры для мягкого старта за компьютером</p>
+          </div>
+          <div className="flex gap-6 text-sm text-gray-300">
+            <button onClick={() => document.getElementById('games-section')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-cyan-400 transition-colors">Игры</button>
+            <button onClick={() => document.getElementById('about-section')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-cyan-400 transition-colors">О проекте</button>
+            <button onClick={() => document.getElementById('contact-section')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-cyan-400 transition-colors">Контакты</button>
+          </div>
+          <p className="text-gray-500 text-sm">
+            © 2026 FanaTick. Встретимся в новых проектах.
           </p>
         </div>
       </footer>
 
-      {/* Auth Modal */}
-      {showAuthModal && (
-        <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
-        >
-          <div 
-            className="bg-slate-900 border border-white/20 rounded-2xl p-8 w-full max-w-md mx-4 relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setShowAuthModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            {mustVerifyEmail ? (
-              <VerifyEmailForm onClose={() => setShowAuthModal(false)} />
-            ) : (
-              <SignInForm onClose={() => setShowAuthModal(false)} />
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Game Modal */}
-      {activeGame && !accessBlocked && (
+      {activeGame && (
         <div
           className="fixed inset-0 z-[95] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
           onClick={() => setActiveGame(null)}

@@ -182,10 +182,8 @@ export function FrogGame({ onBack }: { onBack: () => void }) {
       } else {
         toast.message("Этот уровень уже пройден — очки не начислены");
       }
-    } catch (e) {
-      toast.error("Не удалось сохранить результат");
-      // eslint-disable-next-line no-console
-      console.error(e);
+    } catch {
+      // Играем без аккаунта — очки просто не сохраняем
     } finally {
       setSubmittingResult(false);
     }
